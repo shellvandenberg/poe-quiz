@@ -23,8 +23,8 @@ Each section has its own saved progress and results. Review missed questions wit
 
 Completed sections receive a separate grade:
 
-- **PASS:** 0–2 questions missed.
-- **NEEDS WORK:** 3 or more questions missed.
+- **PASS:** At least 90% correct on a finished section.
+- **NEEDS WORK:** Below 90% correct on a finished section.
 - **IN PROGRESS:** Questions remain unanswered.
 
 This is a practice threshold, not confirmation of the official test's passing requirements.
