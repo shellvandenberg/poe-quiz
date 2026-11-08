@@ -1,0 +1,676 @@
+import http from "http";
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+import os from "os";
+import { createRequire } from "module";
+
+function loadPuppeteer() {
+  const roots = ["/tmp/poe-test/package.json", "/workspace/package.json"];
+  for (const root of roots) {
+    if (!fs.existsSync(root)) continue;
+    try { return createRequire(root)("puppeteer-core"); }
+    catch (e) { /* try the next install */ }
+  }
+  throw new Error("Install puppeteer-core (npm install puppeteer-core) to run this browser test.");
+}
+const puppeteer = loadPuppeteer();
+
+const ROOT = path.resolve("/workspace");
+const CHROME = "/usr/local/bin/google-chrome";
+const SHOTS = "/tmp/poe-shots";
+fs.mkdirSync(SHOTS, { recursive: true });
+
+const failures = [];
+function ok(cond, msg) {
+  if (!cond) {
+    failures.push(msg);
+    console.error("FAIL", msg);
+  } else console.log("ok", msg);
+}
+
+function contentType(file) {
+  const ext = path.extname(file);
+  const types = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".json": "application/json",
+    ".svg": "image/svg+xml",
+    ".png": "image/png"
+  };
+  return types[ext] || "application/octet-stream";
+}
+
+function startServer() {
+  let swOverride = null;
+  const srv = http.createServer((req, res) => {
+    try {
+      let urlPath = decodeURIComponent(req.url.split("?")[0]);
+      if (urlPath === "/") urlPath = "/index.html";
+      if (urlPath === "/sw.js" && swOverride != null) {
+        res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache");
+        res.end(swOverride);
+        return;
+      }
+      const rel = urlPath.replace(/^\/+/, "");
+      const file = path.resolve(ROOT, rel);
+      if (file !== ROOT && !file.startsWith(ROOT + path.sep)) {
+        res.writeHead(403);
+        res.end("no");
+        return;
+      }
+      const data = fs.readFileSync(file);
+      res.setHeader("Content-Type", contentType(file));
+      res.setHeader("Cache-Control", "no-cache");
+      res.end(data);
+    } catch (e) {
+      res.writeHead(404);
+      res.end("missing");
+    }
+  });
+  return new Promise(resolve => {
+    srv.listen(0, "127.0.0.1", () => {
+      const port = srv.address().port;
+      resolve({
+        srv,
+        base: `http://127.0.0.1:${port}/index.html`,
+        origin: `http://127.0.0.1:${port}`,
+        setSw: text => { swOverride = text; }
+      });
+    });
+  });
+}
+
+const STUB_V20 = `const C="poe-quiz-v20",F=["./","./index.html","./POE_Quiz_singlefile.html","./manifest.json","./icon.svg","./icon-192.png","./icon-512.png"];
+self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(async c=>{await c.addAll(F); await c.put("marker-v20", new Response("old-cache"));}));self.skipWaiting()});
+self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});
+self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request)))});
+`;
+
+async function launch() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "poe-chrome-"));
+  const browser = await puppeteer.launch({
+    executablePath: CHROME,
+    headless: true,
+    userDataDir: dir,
+    args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+  });
+  return browser;
+}
+
+async function newPage(browser) {
+  const page = await browser.newPage();
+  page.setDefaultTimeout(12000);
+  await page.setViewport({ width: 900, height: 1000, deviceScaleFactor: 1 });
+  await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
+  const errors = [];
+  page.on("pageerror", err => errors.push(err.message));
+  page.on("console", msg => { if (msg.type() === "error") errors.push(msg.text()); });
+  page.__errors = errors;
+  return page;
+}
+
+async function card(page, id) {
+  return page.$eval(`[data-section="${id}"]`, el => ({
+    status: el.dataset.status,
+    missed: el.dataset.missed,
+    correct: el.dataset.correct,
+    answered: el.dataset.answered,
+    pos: el.dataset.pos,
+    len: el.dataset.len,
+    prior: el.dataset.prior || "",
+    badge: el.querySelector(".badge").textContent.trim(),
+    cls: el.className
+  }));
+}
+
+async function shot(page, name, opts = {}) {
+  const file = path.join(SHOTS, name);
+  await page.screenshot({ path: file, ...opts });
+  console.log("shot", file);
+}
+
+function checkBank() {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const single = fs.readFileSync(path.join(ROOT, "POE_Quiz_singlefile.html"), "utf8");
+  ok(html === single, "one-file download matches index.html");
+  const start = html.indexOf("const BANK = [");
+  const end = html.indexOf("];\nconst LETTERS");
+  const bank = eval(html.slice(start + "const BANK = ".length, end + 1));
+  const hash = crypto.createHash("sha256").update(JSON.stringify(bank)).digest("hex");
+  ok(bank.length === 386, "bank still has 386 questions");
+  ok(hash === "465b42e808a72a1514e64a1619f57d1fbe72919548791e511fbaa72df98302b0", "question wording, answers, and citations are unchanged");
+  ok(!/\bD3\b/.test(html), "no D3 name added");
+  ok(html.includes("district supervisor"), "existing district wording kept");
+  ok(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8").includes('const C="poe-quiz-v21"'), "service worker cache is v21");
+  const counts = {};
+  bank.forEach(b => { counts[b[0]] = (counts[b[0]] || 0) + 1; });
+  ok(counts.wt === 71 && counts.size === 67 && counts.haz === 50 && counts.sec === 30 && counts.eqp === 35 && counts.rov === 34 && counts.wim === 31 && counts.reg === 68, "section counts unchanged");
+}
+
+async function openHome(page, base) {
+  await page.goto(base, { waitUntil: "load" });
+  await page.waitForSelector("#dash");
+}
+
+async function main() {
+  checkBank();
+  const server = await startServer();
+  const browser = await launch();
+  try {
+    const page = await newPage(browser);
+    await openHome(page, server.base);
+    const spot = await page.evaluate(() => {
+      const q = POE.ITEMS.find(it => it.q.startsWith("On the interstate, a tandem axle"));
+      return {
+        n: POE.ITEMS.length,
+        ans: q.opts[q.ans],
+        district: POE.ITEMS.some(it => it.opts.some(o => o.includes("district supervisor"))),
+        d3: POE.ITEMS.some(it => (it.q + it.opts.join(" ") + it.expl + it.cite).includes("D3")),
+        passMax: POE.PASS_MAX
+      };
+    });
+    ok(spot.n === 386 && spot.ans === "34,000 lbs" && spot.district && !spot.d3 && spot.passMax === 2, "loaded bank keeps lbs wording and the 2-miss practice line");
+    ok(page.__errors.length === 0, "home page has no script errors: " + page.__errors.join(" | "));
+
+    await page.evaluate(() => {
+      const { QID, ITEMS, SECTIONS, KEY } = POE;
+      function sess(id, miss, leave) {
+        const items = ITEMS.filter(it => it.sec === id);
+        const answers = {};
+        items.forEach((it, i) => {
+          if (i >= items.length - leave) return;
+          const pick = i < miss ? it.opts.find((_, k) => k !== it.ans) : it.opts[it.ans];
+          answers[QID(it)] = pick;
+        });
+        return { shuffle: false, deck: items.map(QID), pos: 0, answers, finished: true };
+      }
+      const sections = {};
+      SECTIONS.forEach(s => { sections[s.id] = { shuffle: true, deck: [], pos: 0, answers: {}, finished: false }; });
+      sections.wt = sess("wt", 2, 0);
+      sections.size = sess("size", 3, 0);
+      sections.haz = sess("haz", 0, 40);
+      sections.haz.pos = 5;
+      sections.sec = sess("sec", 1, 0);
+      sections.eqp = sess("eqp", 0, 0);
+      sections.rov = sess("rov", 4, 10);
+      sections.rov.pos = 20;
+      sections.wim = sess("wim", 0, 1);
+      sections.wim.pos = sections.wim.deck.length - 1;
+      sections.reg = sess("reg", 3, 1);
+      sections.reg.pos = sections.reg.deck.length - 1;
+      localStorage.setItem(KEY, JSON.stringify({
+        v: 2, sections,
+        mixed: { shuffle: true, filter: "all", deck: [], pos: 0, answers: {}, finished: false },
+        legacy: null, t: 1
+      }));
+    });
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+
+    const wt = await card(page, "wt");
+    const size = await card(page, "size");
+    const haz = await card(page, "haz");
+    const sec = await card(page, "sec");
+    const eqp = await card(page, "eqp");
+    const rov = await card(page, "rov");
+    const wim = await card(page, "wim");
+    const reg = await card(page, "reg");
+    ok(wt.status === "pass" && wt.badge === "PASS" && wt.missed === "2" && wt.answered === "71" && wt.correct === "69", "2 missed on a finished section is PASS");
+    ok(size.status === "needs" && size.badge === "NEEDS WORK" && size.missed === "3" && size.answered === "67" && size.correct === "64" && size.cls.includes("needs"), "3 missed on a finished section is NEEDS WORK");
+    ok(sec.status === "pass" && sec.missed === "1" && sec.badge === "PASS", "1 missed is PASS");
+    ok(eqp.status === "pass" && eqp.missed === "0" && eqp.badge === "PASS", "0 missed is PASS");
+    ok(haz.status === "progress" && haz.badge === "In progress" && haz.missed === "0" && haz.answered === "10" && haz.pos === "5" && !haz.cls.includes("pass"), "unfinished section with no misses stays In progress");
+    const hazFinished = await page.evaluate(() => POE.state().sections.haz.finished);
+    ok(hazFinished === false, "a saved finished flag does not pass a section that still has unanswered questions");
+    ok(rov.status === "progress" && rov.badge === "In progress" && rov.missed === "4" && rov.pos === "20" && rov.cls.includes("watch") && !rov.cls.includes("needs"), "in-progress section with 4 misses is watched, not failed");
+    ok(wim.status === "progress" && wim.badge === "In progress" && wim.missed === "0" && wim.answered === "30", "one question left is still In progress");
+    ok(reg.status === "progress" && reg.badge === "In progress" && reg.missed === "3" && reg.cls.includes("watch"), "3 misses do not fail a section until it is finished");
+    const attention = await page.$eval("[data-attention]", el => ({ kind: el.dataset.attention, text: el.textContent }));
+    ok(attention.kind === "needs" && attention.text.includes("Size") && attention.text.includes("3 missed") && attention.text.includes("Rover") && attention.text.includes("Registration"), "dashboard names the sections that need attention and the unfinished ones with 3 or more misses");
+    const names = await page.$$eval("#dash article h3", els => els.map(el => el.textContent.replace(/\s+/g, " ").trim()));
+    ok(names.join(" | ") === "Weight | Size | HazMat | Securement | Equipment | Rover Roving POE | WIM/bypass | Registration", "home lists the eight section quizzes: " + names.join(" | "));
+
+    await shot(page, "dashboard_grades.png", { fullPage: true });
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+    await shot(page, "dashboard_mobile.png");
+    await page.setViewport({ width: 900, height: 1000, deviceScaleFactor: 1 });
+
+    const rovQ = await page.evaluate(() => POE.ITEMS.filter(it => it.sec === "rov")[20].q);
+    await page.click('[data-action="resume"][data-section="rov"]');
+    await page.waitForSelector("h3");
+    const rovNow = await page.evaluate(() => ({
+      pos: document.querySelector("[data-pos]").dataset.pos,
+      q: document.querySelector("h3").textContent
+    }));
+    ok(rovNow.pos === "20" && rovNow.q === rovQ, "Rover resumes the saved question");
+    await page.click('[data-action="home"]');
+    await page.waitForSelector("#dash");
+
+    const hazQ = await page.evaluate(() => POE.ITEMS.filter(it => it.sec === "haz")[5].q);
+    await page.click('[data-action="resume"][data-section="haz"]');
+    await page.waitForSelector("[data-pos]");
+    const hazNow = await page.evaluate(() => ({
+      pos: document.querySelector("[data-pos]").dataset.pos,
+      q: document.querySelector("h3").textContent,
+      active: document.querySelector("[data-pos]").dataset.active
+    }));
+    ok(hazNow.pos === "5" && hazNow.q === hazQ && hazNow.active === "haz", "HazMat resumes its own place after Rover");
+
+    const endSeparated = await page.evaluate(() => {
+      const endBtn = document.querySelector(".endbtn");
+      const nav = [...document.querySelectorAll(".row")].find(r => r.textContent.includes("Previous"));
+      const style = getComputedStyle(endBtn);
+      return {
+        parent: endBtn.parentElement.className,
+        inNav: nav.contains(endBtn),
+        color: style.color,
+        bg: style.backgroundColor
+      };
+    });
+    ok(endSeparated.parent === "endrow" && endSeparated.inNav === false, "End test sits apart from Previous and Next");
+    ok(endSeparated.color === "rgb(192, 57, 43)", "End test control stays red");
+    await page.click('[data-action="end"]');
+    await page.waitForSelector(".co.danger");
+    const confirm = await page.evaluate(() => {
+      const box = document.querySelector(".co.danger");
+      const nav = [...document.querySelectorAll(".row")].find(r => r.textContent.includes("Previous"));
+      const yes = box.querySelector(".dangerbtn");
+      return {
+        text: box.textContent,
+        inNav: nav.contains(box),
+        yesBg: getComputedStyle(yes).backgroundColor,
+        endGone: !document.querySelector(".endbtn")
+      };
+    });
+    ok(confirm.text.includes("End test now? Your progress is saved.") && confirm.text.includes("In progress") && confirm.text.includes("will not show PASS"), "end confirmation says an unfinished quiz is not a pass");
+    ok(confirm.inNav === false && confirm.yesBg === "rgb(192, 57, 43)", "end confirmation is the separate red block");
+    await shot(page, "end_test_confirmation.png");
+    const posDuring = await page.$eval("[data-pos]", el => el.dataset.pos);
+    await page.click('[data-action="end-stay"]');
+    ok(await page.$eval("[data-pos]", el => el.dataset.pos) === posDuring && !(await page.$(".co.danger")), "Keep going stays on the same question");
+    await page.click('[data-action="end"]');
+    await page.click('[data-action="end-yes"]');
+    await page.waitForSelector("#dash");
+    const hazAfterEnd = await card(page, "haz");
+    ok(hazAfterEnd.status === "progress" && hazAfterEnd.badge === "In progress" && hazAfterEnd.pos === "5" && hazAfterEnd.answered === "10", "ending an unfinished section leaves it In progress at the same place");
+    ok((await card(page, "size")).status === "needs" && (await card(page, "wt")).status === "pass", "ending HazMat does not regrade other sections");
+
+    await page.click('[data-action="restart"][data-section="haz"]');
+    await page.waitForSelector('[data-confirm="restart"][data-section="haz"]');
+    const restartText = await page.$eval('[data-confirm="restart"]', el => el.textContent);
+    ok(restartText.includes("Restart HazMat only?") && restartText.includes("other sections stay"), "restart confirmation names only HazMat");
+    await shot(page, "restart_one_section.png");
+    await page.click('[data-action="restart-no"]');
+    ok((await card(page, "haz")).answered === "10", "cancel restart keeps HazMat answers");
+    await page.click('[data-action="restart"][data-section="haz"]');
+    await page.click('[data-action="restart-yes"]');
+    const hazReset = await card(page, "haz");
+    ok(hazReset.status === "new" && hazReset.len === "0" && hazReset.badge === "Not started", "confirmed restart clears HazMat");
+    ok((await card(page, "size")).missed === "3" && (await card(page, "size")).status === "needs", "Size grade survives a HazMat restart");
+    ok((await card(page, "rov")).pos === "20" && (await card(page, "rov")).missed === "4", "Rover place survives a HazMat restart");
+    ok((await card(page, "wt")).status === "pass" && (await card(page, "wim")).answered === "30", "Weight and WIM/bypass survive a HazMat restart");
+
+    await page.click('[data-action="review"][data-section="size"]');
+    await page.waitForSelector('[data-grade="needs"]');
+    const review = await page.evaluate(() => {
+      const g = POE.gradeSection("size");
+      const blocks = [...document.querySelectorAll(".miss")];
+      const all = g.missedItems.every(({ it, chosen }) => {
+        const el = document.querySelector(`[data-review="${CSS.escape(POE.QID(it))}"]`);
+        if (!el) return false;
+        const text = el.textContent;
+        return text.includes(it.opts[it.ans]) && text.includes(it.opts[chosen]) && text.includes(it.cite) && text.includes(it.expl);
+      });
+      return { n: blocks.length, missed: g.missed, all, grade: document.querySelector("[data-grade]").dataset.grade };
+    });
+    ok(review.grade === "needs" && review.n === 3 && review.missed === 3 && review.all, "missed Size questions show the chosen answer, correct answer, explanation, and citation");
+    await shot(page, "review_missed.png");
+    await page.click('[data-action="home"]');
+
+    await page.click('[data-action="resume"][data-section="wim"]');
+    await page.waitForSelector("[data-pick]");
+    await page.evaluate(() => {
+      const qid = document.querySelector("h3").dataset.qid;
+      const it = POE.ITEMS.find(item => POE.QID(item) === qid);
+      document.querySelector(`[data-action="pick"][data-pick="${it.ans}"]`).click();
+    });
+    await page.waitForSelector('[data-grade="pass"]');
+    await page.click('[data-action="home"]');
+    const wimDone = await card(page, "wim");
+    ok(wimDone.status === "pass" && wimDone.badge === "PASS" && wimDone.missed === "0" && wimDone.answered === "31", "answering the last WIM/bypass question with 0 misses becomes PASS");
+
+    await page.click('[data-action="resume"][data-section="reg"]');
+    await page.waitForSelector("[data-pick]");
+    await page.evaluate(() => {
+      const qid = document.querySelector("h3").dataset.qid;
+      const it = POE.ITEMS.find(item => POE.QID(item) === qid);
+      document.querySelector(`[data-action="pick"][data-pick="${it.ans}"]`).click();
+    });
+    await page.waitForSelector('[data-grade="needs"]');
+    await page.click('[data-action="home"]');
+    const regDone = await card(page, "reg");
+    ok(regDone.status === "needs" && regDone.badge === "NEEDS WORK" && regDone.missed === "3" && regDone.answered === "68", "finishing Registration with 3 misses becomes NEEDS WORK");
+    ok((await card(page, "wim")).status === "pass", "finishing Registration leaves the WIM/bypass pass in place");
+
+    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => {
+      const items = POE.ITEMS.filter(it => it.sec === "wt");
+      const answers = {};
+      items.slice(0, 4).forEach(it => {
+        let text = it.opts[it.ans];
+        if (!Object.keys(answers).length && text.includes("lbs")) text = text.replace(/\blbs\b/g, "lb");
+        answers[POE.QID(it)] = text;
+      });
+      const raw = { filter: "wt", shuffle: false, deck: items.map(POE.QID), pos: 10, answers, finished: false, t: 99 };
+      localStorage.setItem(POE.KEY_V1, JSON.stringify(raw));
+      window.__raw = raw;
+    });
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("[data-legacy-banner]");
+    const legacy = await card(page, "wt");
+    const banner = await page.$eval("[data-legacy-banner]", el => el.textContent);
+    const legacyStore = await page.evaluate(() => ({
+      v1: localStorage.getItem(POE.KEY_V1),
+      arch: JSON.parse(localStorage.getItem(POE.KEY_V1_ARCH)),
+      raw: POE.state().legacy.raw,
+      size: POE.state().sections.size.deck.length,
+      placed: POE.state().legacy.placed
+    }));
+    ok(legacy.status === "progress" && legacy.badge === "In progress" && legacy.pos === "10" && legacy.answered === "4" && legacy.correct === "4" && legacy.len === "71", "a saved full Weight quiz restores its place and lbs answers");
+    ok(banner.includes("Weight") && banner.includes("question 11 of 71") && banner.includes("4 answered"), "migration tells you where the old quiz was restored");
+    ok(legacyStore.v1 === null && legacyStore.placed === "wt" && legacyStore.size === 0, "old key is retired only after the backup exists, and other sections stay empty");
+    ok(JSON.stringify(legacyStore.arch.deck) === JSON.stringify(legacyStore.raw.deck) && legacyStore.arch.pos === 10 && Object.keys(legacyStore.arch.answers).length === 4, "original save is kept in the backup and in the new record");
+    ok((await card(page, "size")).status === "new" && (await card(page, "size")).badge === "Not started", "restoring Weight does not mark Size");
+    await shot(page, "legacy_weight_restored.png", { fullPage: false });
+    const archBefore = legacyStore.arch;
+    await page.click('[data-action="restart"][data-section="wt"]');
+    await page.click('[data-action="restart-yes"]');
+    const afterRestart = await page.evaluate(() => ({
+      arch: JSON.parse(localStorage.getItem(POE.KEY_V1_ARCH)),
+      rawDeck: POE.state().legacy.raw.deck.length,
+      wt: POE.state().sections.wt.deck.length
+    }));
+    ok((await card(page, "wt")).status === "new" && afterRestart.wt === 0, "restart clears only the Weight quiz");
+    ok(JSON.stringify(afterRestart.arch.deck) === JSON.stringify(archBefore.deck) && afterRestart.rawDeck === 71, "restart does not erase the backed-up save");
+
+    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => {
+      const items = POE.ITEMS.filter(it => it.sec === "size");
+      const answers = {};
+      items.forEach((it, i) => {
+        const pick = i < 3 ? it.opts.find((_, k) => k !== it.ans) : it.opts[it.ans];
+        answers[POE.QID(it)] = pick;
+      });
+      localStorage.setItem(POE.KEY_V1, JSON.stringify({
+        filter: "size", shuffle: false, deck: items.map(POE.QID), pos: 4, answers, finished: true, t: 5
+      }));
+    });
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const sizeLegacy = await card(page, "size");
+    ok(sizeLegacy.status === "needs" && sizeLegacy.badge === "NEEDS WORK" && sizeLegacy.missed === "3", "a finished saved Size quiz with 3 misses migrates as NEEDS WORK");
+    ok((await card(page, "wt")).status === "new", "that Size migration does not fill Weight");
+
+    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => {
+      const items = POE.ITEMS.filter(it => it.sec === "eqp");
+      const answers = {};
+      items.forEach((it, i) => {
+        if (i < 2) return;
+        answers[POE.QID(it)] = i < 4 ? it.opts.find((_, k) => k !== it.ans) : it.opts[it.ans];
+      });
+      // 2 misses, all answered
+      items.forEach((it, i) => {
+        answers[POE.QID(it)] = i < 2 ? it.opts.find((_, k) => k !== it.ans) : it.opts[it.ans];
+      });
+      localStorage.setItem(POE.KEY_V1, JSON.stringify({
+        filter: "eqp", shuffle: false, deck: items.map(POE.QID), pos: 1, answers, finished: false, t: 6
+      }));
+    });
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const eqpLegacy = await card(page, "eqp");
+    ok(eqpLegacy.status === "pass" && eqpLegacy.badge === "PASS" && eqpLegacy.missed === "2" && eqpLegacy.answered === "35", "a fully answered saved Equipment quiz with 2 misses migrates as PASS");
+
+    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => {
+      const wt = POE.ITEMS.filter(it => it.sec === "wt").slice(0, 3);
+      const sizeItems = POE.ITEMS.filter(it => it.sec === "size").slice(0, 2);
+      const deck = wt.concat(sizeItems);
+      const answers = {};
+      answers[POE.QID(deck[0])] = deck[0].opts[deck[0].ans];
+      localStorage.setItem(POE.KEY_V1, JSON.stringify({
+        filter: "all", shuffle: false, deck: deck.map(POE.QID), pos: 3, answers, finished: true, t: 7
+      }));
+    });
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("[data-legacy-banner]");
+    const partialBanner = await page.$eval("[data-legacy-banner]", el => el.textContent);
+    const mixed = await card(page, "mixed");
+    ok(mixed.len === "5" && mixed.pos === "3" && mixed.status === "progress" && mixed.badge === "In progress", "a short multi-section save resumes as the mixed quiz at the same question");
+    ok((await card(page, "wt")).status === "new" && (await card(page, "wt")).badge === "Not started", "a partial old quiz does not pass Weight");
+    ok(partialBanner.includes("mixed quiz") && partialBanner.includes("did not mark any section passed"), "the note says the old mixed quiz was not turned into section passes");
+    const mixedRow = await page.$eval('[data-mixed-section="wt"]', el => el.dataset.status);
+    ok(mixedRow === "progress", "Weight inside that partial mixed quiz stays In progress");
+
+    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => {
+      const items = POE.ITEMS.filter(it => it.sec === "sec").slice(0, 5);
+      const answers = {};
+      items.forEach(it => { answers[POE.QID(it)] = it.opts[it.ans]; });
+      localStorage.setItem(POE.KEY_V1, JSON.stringify({
+        filter: "sec", shuffle: false, deck: items.map(POE.QID), pos: 4, answers, finished: true, t: 8
+      }));
+    });
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const secCard = await card(page, "sec");
+    const secMixed = await card(page, "mixed");
+    ok(secCard.status === "new" && secCard.badge === "Not started", "a 5-question Securement save is not graded as the full section");
+    ok(secMixed.len === "5" && secMixed.answered === "5" && secMixed.badge === "Finished", "that short save is kept on the mixed quiz and is labeled Finished, not PASS (" + JSON.stringify(secMixed) + ")");
+    const secRow = await page.$eval('[data-mixed-section="sec"]', el => ({ status: el.dataset.status, text: el.textContent }));
+    ok(secRow.status === "progress" && secRow.text.includes("In progress"), "five correct Securement answers do not pass the section");
+
+    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => {
+      const items = POE.ITEMS;
+      const answers = {};
+      const misses = { wt: 0, size: 0, haz: 0 };
+      items.forEach(it => {
+        const limit = it.sec === "haz" ? 3 : it.sec === "wt" ? 2 : 0;
+        const wrong = (misses[it.sec] || 0) < limit;
+        if (wrong) misses[it.sec] = (misses[it.sec] || 0) + 1;
+        const pick = wrong ? it.opts.find((_, k) => k !== it.ans) : it.opts[it.ans];
+        answers[POE.QID(it)] = pick;
+      });
+      localStorage.setItem(POE.KEY_V1, JSON.stringify({
+        filter: "all", shuffle: false, deck: items.map(POE.QID), pos: 100, answers, finished: true, t: 9
+      }));
+    });
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const fullMixed = await card(page, "mixed");
+    const hazRow = await page.$eval('[data-mixed-section="haz"]', el => ({ status: el.dataset.status, text: el.textContent }));
+    const wtRow = await page.$eval('[data-mixed-section="wt"]', el => ({ status: el.dataset.status, text: el.textContent }));
+    const sizeRow = await page.$eval('[data-mixed-section="size"]', el => el.dataset.status);
+    ok(fullMixed.len === "386" && fullMixed.pos === "100" && fullMixed.badge === "NEEDS WORK", "a finished 386-question save keeps its place and is not given one overall PASS");
+    ok(hazRow.status === "needs" && hazRow.text.includes("NEEDS WORK"), "HazMat with 3 misses in the old mixed quiz needs work");
+    ok(wtRow.status === "pass" && wtRow.text.includes("PASS"), "Weight with 2 misses in the old mixed quiz passes that section");
+    ok(sizeRow === "pass", "a perfect Size section inside the finished mixed quiz passes");
+    const hazOwn = await card(page, "haz");
+    const wtOwn = await card(page, "wt");
+    ok(hazOwn.status === "new" && hazOwn.badge === "Not started" && hazOwn.prior === "needs" && hazOwn.cls.includes("needs"), "HazMat's own quiz stays Not started while the mixed result is highlighted");
+    ok(wtOwn.status === "new" && wtOwn.badge === "Not started", "Weight's own quiz is not marked PASS from the mixed save");
+    const q100 = await page.evaluate(() => POE.ITEMS[100].q);
+    await page.click('[data-action="resume"][data-section="mixed"]');
+    await page.waitForSelector("h3");
+    const mixedAt = await page.evaluate(() => ({
+      pos: document.querySelector("[data-pos]").dataset.pos,
+      q: document.querySelector("h3").textContent
+    }));
+    ok(mixedAt.pos === "100" && mixedAt.q === q100, "the old mixed quiz resumes question 101");
+
+    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => {
+      const items = POE.ITEMS.filter(it => it.sec === "reg");
+      const answers = {};
+      items.slice(0, 2).forEach(it => { answers[POE.QID(it)] = it.opts[it.ans]; });
+      localStorage.setItem(POE.KEY_V1, JSON.stringify({
+        filter: "reg", shuffle: false, deck: items.map(POE.QID), pos: 8, answers, finished: true, t: 10
+      }));
+    });
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("[data-legacy-banner]");
+    const gapBanner = await page.$eval("[data-legacy-banner]", el => el.textContent);
+    const regGap = await card(page, "reg");
+    ok(regGap.status === "progress" && regGap.badge === "In progress" && regGap.pos === "8" && regGap.answered === "2" && regGap.missed === "0", "a save marked finished with questions left stays In progress");
+    ok(gapBanner.includes("not passed") || gapBanner.includes("In progress"), "the note says that unfinished save was not passed");
+
+    await page.evaluate(() => localStorage.clear());
+    const bogus = { filter: "all", shuffle: true, deck: ["missing-question"], pos: 3, answers: { "missing-question": "nope" }, finished: true, t: 11 };
+    await page.evaluate(raw => localStorage.setItem(POE.KEY_V1, JSON.stringify(raw)), bogus);
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("[data-legacy-banner]");
+    const badges = await page.$$eval("#dash .badge", els => els.map(el => el.textContent.trim()));
+    const kept = await page.evaluate(() => ({
+      v1: localStorage.getItem(POE.KEY_V1),
+      arch: JSON.parse(localStorage.getItem(POE.KEY_V1_ARCH)),
+      detail: POE.state().legacy.detail
+    }));
+    ok(badges.every(b => b === "Not started"), "an unreadable old save does not pass any section");
+    ok(kept.v1 === null && kept.arch.deck[0] === "missing-question" && kept.detail.includes("kept"), "an unreadable old save is still stored");
+    await page.click('[data-action="dismiss-legacy"]');
+    ok(!(await page.$("[data-legacy-banner]")), "the note can be hidden");
+    const stillKept = await page.evaluate(() => JSON.parse(localStorage.getItem(POE.KEY_V1_ARCH)).deck[0] === "missing-question" && POE.state().legacy.raw.deck[0] === "missing-question");
+    ok(stillKept, "hiding the note does not delete the save");
+
+    await page.evaluate(() => localStorage.clear());
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    await page.click('[data-action="start"][data-section="eqp"]');
+    await page.waitForSelector("h3");
+    const q0 = await page.$eval("h3", el => el.dataset.qid);
+    await page.click('[data-action="pick"][data-pick="0"]');
+    await page.waitForSelector(".cite");
+    ok((await page.$eval(".cite", el => el.textContent)).length > 3, "answering shows the citation");
+    await page.click('[data-action="next"]');
+    const q1 = await page.$eval("h3", el => el.dataset.qid);
+    await page.click('[data-action="pick"][data-pick="0"]');
+    await page.waitForSelector(".cite");
+    await page.click('[data-action="next"]');
+    const livePos = await page.$eval("[data-pos]", el => el.dataset.pos);
+    const q2 = await page.$eval("h3", el => el.dataset.qid);
+    ok(livePos === "2", "Next moves to the third question");
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem(POE.KEY)).sections.eqp);
+    ok(stored.pos === 2 && Object.keys(stored.answers).length === 2 && stored.deck[0] === q0 && stored.deck[2] === q2, "every answer and the exact place are written to storage");
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector('[data-action="resume"][data-section="eqp"]');
+    ok((await card(page, "eqp")).status === "progress" && (await card(page, "eqp")).pos === "2" && (await card(page, "eqp")).badge === "In progress", "reload shows Equipment in progress at question 3");
+    await page.click('[data-action="resume"][data-section="eqp"]');
+    ok(await page.$eval("h3", el => el.dataset.qid) === q2, "resume opens the same Equipment question");
+    await page.click('[data-action="prev"]');
+    const prevMarked = await page.evaluate(() => ({
+      qid: document.querySelector("h3").dataset.qid,
+      marked: !!document.querySelector(".opt.ok, .opt.bad"),
+      cite: !!document.querySelector(".cite")
+    }));
+    ok(prevMarked.qid === q1 && prevMarked.marked && prevMarked.cite, "the previous answer is still marked after reload");
+    await page.click('[data-action="home"]');
+    await page.click('[data-action="start"][data-section="size"]');
+    await page.waitForSelector("[data-pick]");
+    await page.click('[data-action="pick"][data-pick="0"]');
+    await page.waitForSelector(".cite");
+    await page.click('[data-action="home"]');
+    ok((await card(page, "eqp")).pos === "1" && (await card(page, "eqp")).answered === "2", "starting Size leaves Equipment on the question you last opened");
+    ok((await card(page, "size")).status === "progress" && (await card(page, "size")).answered === "1" && (await card(page, "size")).pos === "0", "Size saves its own first answer");
+    await page.click('[data-action="restart"][data-section="size"]');
+    await page.click('[data-action="restart-no"]');
+    ok((await card(page, "size")).answered === "1", "cancel leaves Size running");
+    await page.click('[data-action="restart"][data-section="size"]');
+    await page.click('[data-action="restart-yes"]');
+    ok((await card(page, "size")).status === "new", "Size restart clears Size");
+    ok((await card(page, "eqp")).status === "progress" && (await card(page, "eqp")).pos === "1" && (await card(page, "eqp")).answered === "2", "Size restart does not clear Equipment");
+    ok(page.__errors.length === 0, "no script errors during the quiz: " + page.__errors.join(" | "));
+
+    const keysBeforeUpdate = await page.evaluate(async () => await caches.keys());
+    ok(keysBeforeUpdate.includes("poe-quiz-v21"), "normal load installs the v21 cache: " + keysBeforeUpdate.join(","));
+  } finally {
+    await browser.close();
+  }
+
+  const browser2 = await launch();
+  try {
+    server.setSw(STUB_V20);
+    const page = await newPage(browser2);
+    await page.goto(server.base, { waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const firstKeys = await waitKeys(page, keys => keys.includes("poe-quiz-v20"), 15000);
+    ok(firstKeys.includes("poe-quiz-v20"), "first worker cache is v20: " + firstKeys.join(","));
+    server.setSw(null);
+    await page.reload({ waitUntil: "load" });
+    const nextKeys = await waitKeys(page, keys => keys.length === 1 && keys[0] === "poe-quiz-v21", 15000);
+    ok(nextKeys.length === 1 && nextKeys[0] === "poe-quiz-v21", "updating the worker drops v20 and keeps v21: " + nextKeys.join(","));
+    const cached = await page.evaluate(async () => {
+      const keys = await caches.keys();
+      const named = keys[0] ? await caches.open(keys[0]) : null;
+      const hit = named ? await named.match("./index.html") : null;
+      const text = hit ? await hit.text() : "";
+      const marker = named ? await named.match("marker-v20") : null;
+      return { hasApp: text.includes("Section quizzes") && text.includes("v21"), marker: !!marker, len: text.length };
+    });
+    ok(cached.hasApp && cached.marker === false, "v21 cache holds the section quiz and the v20 marker is gone (" + JSON.stringify(cached) + ")");
+    const sub = await page.$eval("header .sub", el => el.textContent);
+    ok(sub.includes("v21"), "updated page shows v21");
+    await page.setOfflineMode(true);
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const offline = await page.evaluate(() => ({
+      heading: document.querySelector("#dash h2").textContent,
+      n: POE.ITEMS.length,
+      sub: document.querySelector("header .sub").textContent
+    }));
+    ok(offline.heading === "Section quizzes" && offline.n === 386 && offline.sub.includes("v21"), "offline reload serves the updated quiz and all 386 questions");
+    await page.click('[data-action="start"][data-section="wt"]');
+    await page.waitForSelector("h3");
+    const offlineQ = await page.$eval("h3", el => el.textContent);
+    ok(offlineQ.length > 40, "a section quiz starts from the offline cache");
+    await page.click('[data-action="pick"][data-pick="0"]');
+    await page.waitForSelector(".cite");
+    const offlineSaved = await page.evaluate(() => {
+      const saved = JSON.parse(localStorage.getItem(POE.KEY)).sections.wt;
+      return Object.keys(saved.answers).length === 1 && saved.pos === 0;
+    });
+    ok(offlineSaved, "an offline answer is saved on the device");
+    ok(page.__errors.filter(e => !/Failed to fetch|net::ERR_INTERNET_DISCONNECTED|NetworkError/.test(e)).length === 0, "offline page has no unexpected script errors: " + page.__errors.join(" | "));
+    await shot(page, "offline_section_quiz.png");
+  } finally {
+    await browser2.close();
+    server.srv.close();
+  }
+
+  if (failures.length) {
+    console.error("\n" + failures.length + " failed");
+    process.exit(1);
+  }
+  console.log("\nALL PASSED");
+}
+
+async function waitKeys(page, pred, timeout) {
+  const start = Date.now();
+  let last = [];
+  while (Date.now() - start < timeout) {
+    try {
+      last = await page.evaluate(async () => await caches.keys());
+      if (pred(last)) return last;
+    } catch (e) { /* navigation while the worker takes control */ }
+    await new Promise(r => setTimeout(r, 250));
+  }
+  return last;
+}
+
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
