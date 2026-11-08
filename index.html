@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1d3b6a"><meta name="apple-mobile-web-app-capable" content="yes"><title>POE Inspector Practice Quiz</title><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-192.png"><style>
 *{box-sizing:border-box}body{font-family:system-ui,sans-serif;margin:0;background:#f4f5f7;color:#1a1a1a}header{background:#1d3b6a;color:#fff;padding:14px 16px}header h1{margin:0;font-size:1.2rem}header .sub{margin:4px 0 0;font-size:.85rem;opacity:.9}main{max-width:760px;margin:auto;padding:10px}section{background:#fff;border-radius:12px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0002}h2{margin:0 0 10px;font-size:1.05rem}h3{font-size:1.05rem}label{display:block;margin:8px 0}select{width:100%;padding:10px;font-size:1rem}.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}button{padding:11px 14px;font-size:1rem;border-radius:8px;border:1px solid #bbb;background:#fff;color:inherit}button.pri{background:#1d3b6a;color:#fff;border-color:#1d3b6a}button:disabled{opacity:.6}.opt{display:block;width:100%;text-align:left;margin:6px 0}.opt.ok{background:#d9f2df;border-color:#2e8b47;opacity:1}.opt.bad{background:#fbdcdc;border-color:#c0392b;opacity:1}.co{border-radius:8px;padding:10px;margin-top:10px}.co p{margin:4px 0}.info{background:#e3eefc}.warn{background:#fff1d6}.good{background:#dff3e4}.cite{font-size:.85rem;color:#555}.meta{font-size:.85rem;color:#555}table{width:100%;border-collapse:collapse;font-size:.92rem}td,th{padding:6px;border-bottom:1px solid #eee;text-align:left}.pass{color:#2e8b47;font-weight:700}.fail{color:#c0392b;font-weight:700}.endrow{display:flex;justify-content:flex-end;min-height:0}.endbtn{font-size:.8rem;padding:5px 10px;border:1px solid #c0392b;color:#c0392b;background:#c0392b14;font-weight:600}.danger{background:#fbdcdc;border:1px solid #c0392b}.dangerbtn{background:#c0392b;color:#fff;border-color:#c0392b}.miss{border-top:1px solid #eee;padding:8px 0}article.card{background:#fff;border-radius:12px;padding:12px;margin:10px 0;box-shadow:0 1px 3px #0002;border:2px solid transparent}article.card h3{margin:0;font-size:1.02rem}article.card p{margin:4px 0}.cardhead{display:flex;justify-content:space-between;align-items:center;gap:8px}.hint{font-weight:500;color:#555;font-size:.8rem}.badge{font-size:.72rem;font-weight:700;letter-spacing:.02em;padding:3px 8px;border-radius:99px;white-space:nowrap}.badge.pass{background:#dff3e4;color:#1e7a38}.badge.fail{background:#fbdcdc;color:#a3261c}.badge.prog{background:#fff1d6;color:#8a5a00}.badge.new{background:#e8ecf1;color:#555}.card.needs{border-color:#c0392b;background:#fff7f7}.card.watch{border-color:#c9a227;background:#fffaf0}.card.pass{border-color:#2e8b47}.bar{height:8px;background:#e6e8ec;border-radius:99px;overflow:hidden;margin:8px 0}.bar>span{display:block;height:100%;background:#1d3b6a}.card.needs .bar>span{background:#c0392b}.card.watch .bar>span{background:#b8860b}.card.pass .bar>span{background:#2e8b47}.foot{margin:6px 2px 18px}@media(prefers-color-scheme:dark){body{background:#111;color:#eee}section,button,article.card{background:#1e1e1e;color:#eee}.info{background:#1b2a40}.warn{background:#3a2e12}.good{background:#163322}.opt.ok{background:#163322}.opt.bad,.danger{background:#3d1a1a}.cite,.meta,.hint{color:#aaa}td,th{border-color:#333}.badge.new{background:#2a2a2a;color:#ccc}.badge.prog{background:#3a2e12;color:#f0d48a}.badge.pass{background:#163322;color:#8dcea0}.badge.fail{background:#3d1a1a;color:#f0a8a2}.card.needs{background:#2a1515;border-color:#c0392b}.card.watch{background:#2a2414;border-color:#c9a227}.card.pass{border-color:#2e8b47}.bar{background:#333}button.pri{color:#fff}}
-</style></head><body><header><h1>POE Inspector Practice Quiz</h1><p class="sub">Idaho practice by section · v23</p></header><main id="app"></main><script>const SECTIONS = [
+</style></head><body><header><h1>POE Inspector Practice Quiz</h1><p class="sub">Idaho practice by section · v24</p></header><main id="app"></main><script>const SECTIONS = [
   { id: "wt", name: "Weight" },
   { id: "size", name: "Size" },
   { id: "haz", name: "HazMat" },
@@ -36,7 +36,7 @@ const BANK = [
   ["wt", "A truck has an annual overweight permit for purple routes and is loaded to 48,000 lbs on a tandem. May it travel on green routes under that permit?", "No; green routes cap the tandem at 43,500 lbs, so it must stay on purple/black routes or get a single-trip permit", ["Yes, an annual purple permit covers all lower route colors", "Yes, if a pilot car accompanies it", "Yes, but only at night"], "Worksheets #18-19.", "IDAPA 39.03.01.308.05; ITD POE Weight Worksheet p.6"],
   ["wt", "A 1999 truck has 295/75R22.5 non-steer tires (295 mm = about 11.61 inches) and the 600 lb-per-inch rule applies. About how much weight may each tire carry?", "About 6,966 lbs", ["About 5,800 lbs", "About 9,280 lbs", "About 7,440 lbs"], "Worksheet #20 circled 6,960 (rounded 11.6 in).", "I.C. 49-1002; ITD POE Weight Worksheet p.6"],
   ["wt", "A vehicle hauling six 10-ft-wide tires weighs 82,640 lbs gross, and every axle is legal. Which permits does it need?", "A non-reducible oversize permit and an EL/EW permit up to 129,000 lbs", ["A non-reducible oversize permit only", "A reducible oversize permit and an EL/EW permit", "An EL/EW permit only"], "Worksheet #22; POE/MC 11-22 FYI memo.", "I.C. 49-1004(1); ITD POE Weight Worksheet p.7"],
-  ["wt", "A 10-axle combination weighs 119,260 lbs, is registered for 120,000 lbs, and has no permit. Which code section is violated, and what permit does it need?", "I.C. 49-1004; an EL/EW permit up to 129,000 lbs", ["I.C. 49-1010(3); a reducible oversize permit", "I.C. 49-1001(3); an EL/EW permit", "I.C. 49-1004(3); a 192,000 lbs permit"], "Worksheet #23.", "I.C. 49-1004(1); ITD POE Weight Worksheet p.8"],
+  ["wt", "A driver crosses the EBOI eastbound scale with a 10-axle combination that weighs 119,260 lbs. The truck is registered for 120,000 lbs and does not have a permit. Which code section would you use to cite operating without the required permit, and what permit does the combination need?", "I.C. 49-1004; an EL/EW permit up to 129,000 lbs", ["I.C. 49-1010(3); a reducible oversize permit", "I.C. 49-1001(3); an EL/EW permit", "I.C. 49-1004(3); a 192,000 lbs permit"], "Worksheet #23.", "I.C. 49-1004(1); ITD POE Weight Worksheet p.8"],
   ["wt", "A city refuse (trash) truck is weighed with 39,700 lbs on a tandem whose legal limit is 37,800 lbs. What action do you take?", "No citation; I.C. 49-1011(3) allows it up to 2,000 lbs over", ["Cite under I.C. 49-1001(9)", "Park the truck until it is offloaded", "Cite and sell a travel authorization"], "Worksheet #25.", "I.C. 49-1011(3); ITD POE Weight Worksheet p.8"],
   ["wt", "On US-95 between the Oregon border and Payette, an 8-axle combination has 79 ft between its first and last axles. What is its maximum LEGAL gross weight (without a permit)?", "105,500 lbs", ["121,000 lbs", "120,000 lbs", "125,500 lbs"], "Worksheet #28; permitted max 129,000.", "I.C. 49-1001(1); ITD POE Weight Worksheet p.9"],
   ["wt", "In an extra-length combination, a trailer may not be more than how much heavier than the trailer ahead of it?", "4,000 lbs", ["2,000 lbs", "3,500 lbs", "4,500 lbs"], "Worksheets #30 and Review #3.", "IDAPA 39.03.01.202.04; ITD POE Weight Worksheet p.10, p.14"],
@@ -422,8 +422,18 @@ const KEY_V1_ARCH = "poe-quiz-progress-v1-archived";
 const KEY = "poe-quiz-progress-v2";
 const PASS_MAX = 2;
 const QID = it => it.sec + ":" + hash(NRM(it.q)).toString(36);
+const QID_ALIAS = { "wt:11lfube": "wt:7wlt1b" };
 const BY = {};
 ITEMS.forEach(it => { BY[QID(it)] = it; });
+function canonId(id) { return QID_ALIAS[id] || id; }
+function savedAnswer(answers, id) {
+  if (!answers) return undefined;
+  if (typeof answers[id] === "string") return answers[id];
+  for (const oldId in QID_ALIAS) {
+    if (QID_ALIAS[oldId] === id && typeof answers[oldId] === "string") return answers[oldId];
+  }
+  return undefined;
+}
 
 let canSave = true;
 let P = blank();
@@ -472,7 +482,17 @@ function commitArchive(raw) {
   }
 }
 function itemsIn(id) { return ITEMS.filter(it => it.sec === id); }
-function resolveDeck(sess) { return (sess.deck || []).map(id => BY[id]).filter(Boolean); }
+function resolveDeck(sess) {
+  const seen = new Set();
+  const out = [];
+  (sess.deck || []).forEach(id => {
+    const cid = canonId(id);
+    if (!BY[cid] || seen.has(cid)) return;
+    seen.add(cid);
+    out.push(BY[cid]);
+  });
+  return out;
+}
 function optIndex(opts, text) {
   const want = NRM(text).toLowerCase();
   return opts.findIndex(o => NRM(o).toLowerCase() === want);
@@ -503,14 +523,15 @@ function normalizeSession(src, sectionId) {
   const deck = [];
   const seen = new Set();
   (sess.deck || []).forEach(id => {
-    if (typeof id !== "string" || !BY[id] || seen.has(id)) return;
-    if (sectionId && BY[id].sec !== sectionId) return;
-    seen.add(id);
-    deck.push(id);
+    const cid = canonId(id);
+    if (typeof cid !== "string" || !BY[cid] || seen.has(cid)) return;
+    if (sectionId && BY[cid].sec !== sectionId) return;
+    seen.add(cid);
+    deck.push(cid);
   });
   const answers = {};
   deck.forEach(id => {
-    const raw = sess.answers && sess.answers[id];
+    const raw = savedAnswer(sess.answers, id);
     if (typeof raw !== "string") return;
     const it = BY[id];
     const k = optIndex(it.opts, raw);
@@ -552,14 +573,15 @@ function migrateV1(raw) {
   const deck = [];
   const seen = new Set();
   (raw && raw.deck || []).forEach(id => {
-    if (typeof id !== "string" || !BY[id] || seen.has(id)) return;
-    seen.add(id);
-    deck.push(BY[id]);
+    const cid = canonId(id);
+    if (typeof cid !== "string" || !BY[cid] || seen.has(cid)) return;
+    seen.add(cid);
+    deck.push(BY[cid]);
   });
   const answers = {};
   deck.forEach(it => {
     const id = QID(it);
-    const text = raw.answers && raw.answers[id];
+    const text = savedAnswer(raw.answers, id);
     if (typeof text !== "string") return;
     const k = optIndex(it.opts, text);
     if (k >= 0) answers[id] = it.opts[k];
