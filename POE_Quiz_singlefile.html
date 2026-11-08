@@ -1,11 +1,13 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1d3b6a"><meta name="apple-mobile-web-app-capable" content="yes"><title>POE Inspector Practice Quiz</title><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-192.png"><style>*{box-sizing:border-box}body{font-family:system-ui,sans-serif;margin:0;background:#f4f5f7;color:#1a1a1a}header{background:#1d3b6a;color:#fff;padding:14px 16px}header h1{margin:0;font-size:1.2rem}main{max-width:760px;margin:auto;padding:10px}section{background:#fff;border-radius:12px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0002}h2{margin:0 0 10px;font-size:1.05rem}label{display:block;margin:8px 0}select{width:100%;padding:10px;font-size:1rem}.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}button{padding:11px 14px;font-size:1rem;border-radius:8px;border:1px solid #bbb;background:#fff}button.pri{background:#1d3b6a;color:#fff;border-color:#1d3b6a}button:disabled{opacity:.6}.opt{display:block;width:100%;text-align:left;margin:6px 0}.opt.ok{background:#d9f2df;border-color:#2e8b47;opacity:1}.opt.bad{background:#fbdcdc;border-color:#c0392b;opacity:1}.co{border-radius:8px;padding:10px;margin-top:10px}.co p{margin:4px 0}.info{background:#e3eefc}.warn{background:#fff1d6}.good{background:#dff3e4}.cite{font-size:.85rem;color:#555}.meta{font-size:.85rem;color:#555}table{width:100%;border-collapse:collapse;font-size:.92rem}td,th{padding:6px;border-bottom:1px solid #eee;text-align:left}.pass{color:#2e8b47;font-weight:700}.fail{color:#c0392b;font-weight:700}.endrow{display:flex;justify-content:flex-end}.endbtn{font-size:.8rem;padding:5px 10px;border:1px solid #c0392b;color:#c0392b;background:#c0392b14;font-weight:600}.danger{background:#fbdcdc}.dangerbtn{background:#c0392b;color:#fff;border-color:#c0392b}.miss{border-top:1px solid #eee;padding:8px 0}@media(prefers-color-scheme:dark){body{background:#111;color:#eee}section,button{background:#1e1e1e;color:#eee}.info{background:#1b2a40}.warn{background:#3a2e12}.good{background:#163322}.opt.ok{background:#163322}.opt.bad{background:#3d1a1a}.cite,.meta{color:#aaa}td,th{border-color:#333}}</style></head><body><header><h1>POE Inspector Practice Quiz</h1></header><main id="app"></main><script>const SECTIONS = [
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1d3b6a"><meta name="apple-mobile-web-app-capable" content="yes"><title>POE Inspector Practice Quiz</title><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-192.png"><style>
+*{box-sizing:border-box}body{font-family:system-ui,sans-serif;margin:0;background:#f4f5f7;color:#1a1a1a}header{background:#1d3b6a;color:#fff;padding:14px 16px}header h1{margin:0;font-size:1.2rem}header .sub{margin:4px 0 0;font-size:.85rem;opacity:.9}main{max-width:760px;margin:auto;padding:10px}section{background:#fff;border-radius:12px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0002}h2{margin:0 0 10px;font-size:1.05rem}h3{font-size:1.05rem}label{display:block;margin:8px 0}select{width:100%;padding:10px;font-size:1rem}.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}button{padding:11px 14px;font-size:1rem;border-radius:8px;border:1px solid #bbb;background:#fff;color:inherit}button.pri{background:#1d3b6a;color:#fff;border-color:#1d3b6a}button:disabled{opacity:.6}.opt{display:block;width:100%;text-align:left;margin:6px 0}.opt.ok{background:#d9f2df;border-color:#2e8b47;opacity:1}.opt.bad{background:#fbdcdc;border-color:#c0392b;opacity:1}.co{border-radius:8px;padding:10px;margin-top:10px}.co p{margin:4px 0}.info{background:#e3eefc}.warn{background:#fff1d6}.good{background:#dff3e4}.cite{font-size:.85rem;color:#555}.meta{font-size:.85rem;color:#555}table{width:100%;border-collapse:collapse;font-size:.92rem}td,th{padding:6px;border-bottom:1px solid #eee;text-align:left}.pass{color:#2e8b47;font-weight:700}.fail{color:#c0392b;font-weight:700}.endrow{display:flex;justify-content:flex-end;min-height:0}.endbtn{font-size:.8rem;padding:5px 10px;border:1px solid #c0392b;color:#c0392b;background:#c0392b14;font-weight:600}.danger{background:#fbdcdc;border:1px solid #c0392b}.dangerbtn{background:#c0392b;color:#fff;border-color:#c0392b}.miss{border-top:1px solid #eee;padding:8px 0}article.card{background:#fff;border-radius:12px;padding:12px;margin:10px 0;box-shadow:0 1px 3px #0002;border:2px solid transparent}article.card h3{margin:0;font-size:1.02rem}article.card p{margin:4px 0}.cardhead{display:flex;justify-content:space-between;align-items:center;gap:8px}.hint{font-weight:500;color:#555;font-size:.8rem}.badge{font-size:.72rem;font-weight:700;letter-spacing:.02em;padding:3px 8px;border-radius:99px;white-space:nowrap}.badge.pass{background:#dff3e4;color:#1e7a38}.badge.fail{background:#fbdcdc;color:#a3261c}.badge.prog{background:#fff1d6;color:#8a5a00}.badge.new{background:#e8ecf1;color:#555}.card.needs{border-color:#c0392b;background:#fff7f7}.card.watch{border-color:#c9a227;background:#fffaf0}.card.pass{border-color:#2e8b47}.bar{height:8px;background:#e6e8ec;border-radius:99px;overflow:hidden;margin:8px 0}.bar>span{display:block;height:100%;background:#1d3b6a}.card.needs .bar>span{background:#c0392b}.card.watch .bar>span{background:#b8860b}.card.pass .bar>span{background:#2e8b47}.foot{margin:6px 2px 18px}@media(prefers-color-scheme:dark){body{background:#111;color:#eee}section,button,article.card{background:#1e1e1e;color:#eee}.info{background:#1b2a40}.warn{background:#3a2e12}.good{background:#163322}.opt.ok{background:#163322}.opt.bad,.danger{background:#3d1a1a}.cite,.meta,.hint{color:#aaa}td,th{border-color:#333}.badge.new{background:#2a2a2a;color:#ccc}.badge.prog{background:#3a2e12;color:#f0d48a}.badge.pass{background:#163322;color:#8dcea0}.badge.fail{background:#3d1a1a;color:#f0a8a2}.card.needs{background:#2a1515;border-color:#c0392b}.card.watch{background:#2a2414;border-color:#c9a227}.card.pass{border-color:#2e8b47}.bar{background:#333}button.pri{color:#fff}}
+</style></head><body><header><h1>POE Inspector Practice Quiz</h1><p class="sub">Idaho practice by section · v21</p></header><main id="app"></main><script>const SECTIONS = [
   { id: "wt", name: "Weight" },
   { id: "size", name: "Size" },
   { id: "haz", name: "HazMat" },
   { id: "sec", name: "Securement" },
   { id: "eqp", name: "Equipment" },
-  { id: "rov", name: "Rover (Roving POE)" },
-  { id: "wim", name: "WIM / bypass" },
+  { id: "rov", name: "Rover", hint: "Roving POE" },
+  { id: "wim", name: "WIM/bypass" },
   { id: "reg", name: "Registration" }
 ];
 const HW = "ITD POE Hazmat & Placards Worksheet p.";
@@ -424,31 +426,593 @@ const ITEMS = BANK.map((b, i) => {
   return { idx: i, sec: b[0], q: b[1], opts, ans: opts.indexOf(b[2]), expl: b[4], cite: b[5] };
 });
 
-const KEY="poe-quiz-progress-v1",QID=it=>it.sec+":"+hash(NRM(it.q)).toString(36),BY={};ITEMS.forEach(it=>BY[QID(it)]=it);
-let S={filter:"all",shuffle:true,deck:[],pos:0,answers:{},finished:false},resumed="",confirmR=false,confirmE=false,canSave=true,view="quiz";
-const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const secName=id=>(SECTIONS.find(x=>x.id===id)||{name:id}).name;
-function save(){try{localStorage.setItem(KEY,JSON.stringify({filter:S.filter,shuffle:S.shuffle,deck:S.deck.map(QID),pos:S.pos,finished:S.finished,answers:Object.fromEntries(S.deck.filter(it=>S.answers[it.idx]!==undefined).map(it=>[QID(it),it.opts[S.answers[it.idx]]])),t:Date.now()}));canSave=true}catch(e){canSave=false}}
-function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(!s)return;S.filter=s.filter||"all";S.shuffle=s.shuffle!==false;const d=(s.deck||[]).map(i=>BY[i]).filter(Boolean);if(!d.length)return;const a={};for(const id in s.answers||{}){const it=BY[id];if(it&&d.includes(it)){const k=it.opts.map(NRM).indexOf(NRM(s.answers[id]));if(k>=0)a[it.idx]=k}}S.deck=d;S.answers=a;S.finished=!!s.finished;S.pos=Math.max(0,Math.min(s.pos||0,d.length-1));resumed=`Resumed — ${Object.keys(a).length} of ${d.length} answered`;if(!S.finished)view="welcome"}catch(e){canSave=false}}
-function shuf(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function start(only){const b=only||ITEMS.filter(it=>S.filter==="all"||it.sec===S.filter);S.deck=S.shuffle?shuf(b):b;S.pos=0;S.answers={};S.finished=false;resumed="";confirmR=false;view="quiz";save();render();scrollTo(0,0)}
-function stats(){const r={};let miss=[];S.deck.forEach(it=>{const p=S.answers[it.idx];const x=r[it.sec]||(r[it.sec]={n:0,a:0,c:0});x.n++;if(p!==undefined){x.a++;if(p===it.ans)x.c++;else miss.push(it)}});return{r,miss}}
-function render(){
- const {r,miss}=stats(),cnt=s=>ITEMS.filter(it=>s==="all"||it.sec===s).length,cur=S.deck[S.pos],W=view==="welcome"&&cur&&!S.finished;let h="";
- if(W){const n=Object.keys(S.answers).length,c=Object.values(r).reduce((a,x)=>a+x.c,0);h+=`<section><h2>Welcome back — pick up where you left off</h2><p class=meta>Your progress is saved on this device</p><div class=meta>You were on question <b>${S.pos+1} of ${S.deck.length}</b> · ${esc(secName(cur.sec))} · Answered <b>${n}/${S.deck.length}</b> · Score so far <b>${n?Math.round(c/n*100)+"%":"–"}</b></div><table><tr><th>Section</th><th>Answered</th><th>Correct</th><th>Missed</th></tr>`+SECTIONS.filter(s=>r[s.id]).map(s=>{const x=r[s.id];return`<tr><td>${esc(s.name)}</td><td>${x.a}/${x.n}</td><td>${x.c}</td><td>${x.a-x.c}</td></tr>`}).join("")+`</table><div class=row><button class=pri style="font-size:1.15em;padding:14px 22px" onclick="view='quiz';render();scrollTo(0,0)">Resume at question ${S.pos+1}</button>${confirmR?"":`<button onclick="confirmR=true;render()">Start over</button>`}</div>`;
-  if(confirmR)h+=`<div class="co warn"><b>Start over?</b><p>This erases your saved answers and score on this device.</p><div class=row><button class=pri onclick="localStorage.removeItem(KEY);S.deck=[];S.answers={};S.pos=0;S.finished=false;resumed='';confirmR=false;view='quiz';render()">Yes, erase and start over</button><button onclick="confirmR=false;render()">Cancel</button></div></div>`;
-  h+=`</section>`;$("app").innerHTML=h;return}
- h+=`<section><h2>Set up a test</h2>${view==="menu"&&cur&&!S.finished?`<div class=row><button class=pri onclick="view='quiz';render();scrollTo(0,0)">Resume test — question ${S.pos+1} of ${S.deck.length}</button></div>`:""}<label>Section <select id=f>${["all",...SECTIONS.map(s=>s.id)].map(s=>`<option value=${s} ${s===S.filter?"selected":""}>${s==="all"?"All sections":esc(secName(s))} (${cnt(s)})</option>`).join("")}</select></label><label class=tg><input type=checkbox id=sh ${S.shuffle?"checked":""}> Shuffle question order</label><div class=row><button class=pri onclick="start()">${S.deck.length?"Restart test":"Start test"}</button>${miss.length?`<button onclick="start(stats().miss)">Retake missed (${miss.length})</button>`:""}${S.deck.length&&!confirmR?`<button onclick="confirmR=true;render()">Start over</button>`:""}</div>`;
- if(confirmR)h+=`<div class="co warn"><b>Start over?</b><p>This erases your saved answers and score on this device.</p><div class=row><button class=pri onclick="localStorage.removeItem(KEY);S.deck=[];S.answers={};S.pos=0;S.finished=false;resumed='';confirmR=false;view='quiz';render()">Yes, erase and start over</button><button onclick="confirmR=false;render()">Cancel</button></div></div>`;
- if(resumed)h+=`<div class="co info"><b>${resumed}</b><p>Your progress saves after every answer.</p></div>`;
- if(!canSave)h+=`<div class="co warn"><b>Progress can't be saved here</b><p>Storage is blocked (private mode?), so progress lasts only while the page is open.</p></div>`;
- h+=`</section>`;
- if(cur&&!S.finished&&view==="quiz"){const p=S.answers[cur.idx];h+=`<section><div class=endrow>${confirmE?"":`<button class=endbtn onclick="confirmE=true;render()">End test</button>`}</div>${confirmE?`<div class="co danger"><b>End test now? Your progress is saved.</b><div class=row><button class=dangerbtn onclick="confirmE=false;S.finished=true;save();render()">Yes, end test</button><button class=pri onclick="confirmE=false;render()">Keep going</button></div></div>`:""}<div class=meta>Question ${S.pos+1} of ${S.deck.length} · ${esc(secName(cur.sec))} · ${Object.keys(S.answers).length} answered</div><h3>${esc(cur.q)}</h3>`+cur.opts.map((o,i)=>{let c="opt";if(p!==undefined){if(i===cur.ans)c+=" ok";else if(i===p)c+=" bad"}return`<button class="${c}" ${p!==undefined?"disabled":""} onclick="S.answers[${cur.idx}]=${i};save();render()"><b>${"ABCD"[i]}.</b> ${esc(o)}</button>`}).join("");
-  if(p!==undefined)h+=`<div class="co ${p===cur.ans?"good":"warn"}"><b>${p===cur.ans?"Correct":"Incorrect — answer: "+"ABCD"[cur.ans]}</b><p>${esc(cur.expl)}</p><p class=cite>${esc(cur.cite)}</p></div>`;
-  h+=`<div class=row><button ${S.pos?"":"disabled"} onclick="S.pos--;save();render()">Previous</button>${S.pos<S.deck.length-1?`<button class=pri onclick="S.pos++;save();render();scrollTo(0,0)">Next</button>`:`<button class=pri onclick="S.finished=true;save();render()">Finish</button>`}<button onclick="view='menu';render();scrollTo(0,0)">Menu</button></div></section>`}
- if(S.deck.length){h+=`<section><h2>Scores</h2><table><tr><th>Section</th><th>Correct</th><th>Missed</th><th>Result</th></tr>`;for(const s of SECTIONS){const x=r[s.id];if(!x)continue;const m=x.a-x.c;h+=`<tr><td>${esc(s.name)}</td><td>${x.c}/${x.a} (${x.n})</td><td>${m}</td><td class=${m<=2?"pass":"fail"}>${x.a?(m<=2?"PASS":"NEEDS WORK"):"—"}</td></tr>`}h+=`</table><p class=meta>PASS = 2 or fewer missed in a section.</p>`;
-  if(S.finished&&miss.length)h+=`<h3>Missed questions</h3>`+miss.map(it=>`<div class=miss><b>${esc(it.q)}</b><p>Your answer: ${esc(it.opts[S.answers[it.idx]])}<br>Correct: ${esc(it.opts[it.ans])}</p><p>${esc(it.expl)}</p><p class=cite>${esc(it.cite)}</p></div>`).join("");h+=`</section>`}
- $("app").innerHTML=h;$("f").onchange=e=>{S.filter=e.target.value;save()};$("sh").onchange=e=>{S.shuffle=e.target.checked;save()};}
-load();render();
-if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
+const KEY_V1 = "poe-quiz-progress-v1";
+const KEY_V1_ARCH = "poe-quiz-progress-v1-archived";
+const KEY = "poe-quiz-progress-v2";
+const PASS_MAX = 2;
+const QID = it => it.sec + ":" + hash(NRM(it.q)).toString(36);
+const BY = {};
+ITEMS.forEach(it => { BY[QID(it)] = it; });
+
+let canSave = true;
+let P = blank();
+let ui = { view: "home", active: null, confirmRestart: null, confirmEnd: false, note: "" };
+
+function blankSession() {
+  return { shuffle: true, deck: [], pos: 0, answers: {}, finished: false };
+}
+function blank() {
+  const sections = {};
+  SECTIONS.forEach(s => { sections[s.id] = blankSession(); });
+  return { sections, mixed: Object.assign(blankSession(), { filter: "all" }), legacy: null };
+}
+function readJSON(key) {
+  let text;
+  try { text = localStorage.getItem(key); }
+  catch (e) { canSave = false; return null; }
+  if (!text) return null;
+  try { return JSON.parse(text); }
+  catch (e) { return null; }
+}
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({ v: 2, sections: P.sections, mixed: P.mixed, legacy: P.legacy, t: Date.now() }));
+    canSave = true;
+    return true;
+  } catch (e) {
+    canSave = false;
+    return false;
+  }
+}
+function sameJSON(a, b) {
+  try { return JSON.stringify(a) === JSON.stringify(b); }
+  catch (e) { return false; }
+}
+function commitArchive(raw) {
+  try {
+    if (!localStorage.getItem(KEY_V1_ARCH)) localStorage.setItem(KEY_V1_ARCH, JSON.stringify(raw));
+    const arch = readJSON(KEY_V1_ARCH);
+    const backed = sameJSON(arch, raw) || (P.legacy && sameJSON(P.legacy.raw, raw));
+    if (backed) localStorage.removeItem(KEY_V1);
+    return backed;
+  } catch (e) {
+    canSave = false;
+    return false;
+  }
+}
+function itemsIn(id) { return ITEMS.filter(it => it.sec === id); }
+function resolveDeck(sess) { return (sess.deck || []).map(id => BY[id]).filter(Boolean); }
+function answerIndex(it, sess) {
+  const text = sess.answers && sess.answers[QID(it)];
+  if (typeof text !== "string") return -1;
+  return it.opts.map(NRM).indexOf(NRM(text));
+}
+function coversAll(deck, id) {
+  const have = new Set(deck.map(QID));
+  return itemsIn(id).every(it => have.has(QID(it)));
+}
+function tally(deck, sess) {
+  let answered = 0, correct = 0;
+  const missedItems = [];
+  deck.forEach(it => {
+    const k = answerIndex(it, sess);
+    if (k < 0) return;
+    answered++;
+    if (k === it.ans) correct++;
+    else missedItems.push({ it, chosen: k });
+  });
+  return { answered, correct, missed: missedItems.length, missedItems };
+}
+function normalizeSession(src, sectionId) {
+  const sess = src || {};
+  const deck = [];
+  const seen = new Set();
+  (sess.deck || []).forEach(id => {
+    if (typeof id !== "string" || !BY[id] || seen.has(id)) return;
+    if (sectionId && BY[id].sec !== sectionId) return;
+    seen.add(id);
+    deck.push(id);
+  });
+  const answers = {};
+  deck.forEach(id => {
+    const raw = sess.answers && sess.answers[id];
+    if (typeof raw !== "string") return;
+    const it = BY[id];
+    const k = it.opts.map(NRM).indexOf(NRM(raw));
+    if (k >= 0) answers[id] = it.opts[k];
+  });
+  const items = deck.map(id => BY[id]);
+  const allAnswered = deck.length > 0 && deck.every(id => Object.prototype.hasOwnProperty.call(answers, id));
+  const full = !sectionId || coversAll(items, sectionId);
+  const finished = allAnswered && full;
+  const pos = deck.length ? Math.max(0, Math.min(Number(sess.pos) || 0, deck.length - 1)) : 0;
+  const out = { shuffle: sess.shuffle !== false, deck, pos, answers, finished };
+  if (!sectionId) {
+    const f = sess.filter;
+    out.filter = f === "all" || SECTIONS.some(s => s.id === f) ? f : "all";
+  }
+  return out;
+}
+function applyState(raw) {
+  const next = blank();
+  SECTIONS.forEach(s => {
+    if (raw.sections && raw.sections[s.id]) next.sections[s.id] = normalizeSession(raw.sections[s.id], s.id);
+  });
+  if (raw.mixed) next.mixed = normalizeSession(raw.mixed, null);
+  if (raw.legacy && typeof raw.legacy === "object") {
+    next.legacy = {
+      raw: "raw" in raw.legacy ? raw.legacy.raw : null,
+      placed: raw.legacy.placed || "kept",
+      detail: typeof raw.legacy.detail === "string" ? raw.legacy.detail : "Earlier progress is stored on this device.",
+      dismissed: !!raw.legacy.dismissed
+    };
+  }
+  P = next;
+}
+function sessionsEmpty() {
+  if (P.mixed.deck.length) return false;
+  return SECTIONS.every(s => P.sections[s.id].deck.length === 0);
+}
+function migrateV1(raw) {
+  const deck = [];
+  const seen = new Set();
+  (raw && raw.deck || []).forEach(id => {
+    if (typeof id !== "string" || !BY[id] || seen.has(id)) return;
+    seen.add(id);
+    deck.push(BY[id]);
+  });
+  const answers = {};
+  deck.forEach(it => {
+    const id = QID(it);
+    const text = raw.answers && raw.answers[id];
+    if (typeof text !== "string") return;
+    const k = it.opts.map(NRM).indexOf(NRM(text));
+    if (k >= 0) answers[id] = it.opts[k];
+  });
+  const pos = deck.length ? Math.max(0, Math.min(Number(raw.pos) || 0, deck.length - 1)) : 0;
+  const allAnswered = deck.length > 0 && deck.every(it => Object.prototype.hasOwnProperty.call(answers, QID(it)));
+  const sess = {
+    shuffle: !raw || raw.shuffle !== false,
+    deck: deck.map(QID),
+    pos,
+    answers,
+    finished: !!(raw && raw.finished) && allAnswered
+  };
+  const place = `question ${pos + 1} of ${deck.length}, ${Object.keys(answers).length} answered`;
+  let extra = "";
+  if (raw && raw.finished && !allAnswered) extra = " It had been marked finished with questions still unanswered, so it stays In progress and is not passed.";
+  if (!deck.length) {
+    return { placed: "unplaced", sess: null, detail: "An earlier quiz save was kept on this device, but its questions no longer match this version, so nothing was marked passed." };
+  }
+  const secs = [...new Set(deck.map(it => it.sec))];
+  if (secs.length === 1 && coversAll(deck, secs[0])) {
+    return { placed: secs[0], sess, detail: `Your saved ${secName(secs[0])} quiz was restored (${place}). Other sections were not changed.${extra}` };
+  }
+  sess.filter = raw && (raw.filter === "all" || SECTIONS.some(s => s.id === raw.filter)) ? raw.filter : "all";
+  const why = secs.length === 1
+    ? `Your saved ${secName(secs[0])} session covered ${deck.length} of ${itemsIn(secs[0]).length} questions, so it was kept as the mixed quiz (${place}) instead of graded as the full section.${extra}`
+    : `Your saved mixed quiz was restored (${place}). Each section quiz starts on its own; this did not mark any section passed.${extra}`;
+  return { placed: "mixed", sess, detail: why };
+}
+function applyMigration(raw) {
+  const mig = migrateV1(raw || {});
+  P = blank();
+  P.legacy = { raw, placed: mig.placed, detail: mig.detail, dismissed: false };
+  if (mig.placed === "mixed" && mig.sess) P.mixed = normalizeSession(mig.sess, null);
+  else if (mig.sess && P.sections[mig.placed]) P.sections[mig.placed] = normalizeSession(mig.sess, mig.placed);
+}
+function keepLegacyRaw(raw) {
+  if (!P.legacy) {
+    P.legacy = { raw, placed: "kept", detail: "An earlier quiz save was kept on this device and was not applied, because section progress is already stored.", dismissed: false };
+  } else if (P.legacy.raw == null) P.legacy.raw = raw;
+}
+function load() {
+  const v2 = readJSON(KEY);
+  const v1 = readJSON(KEY_V1);
+  if (v2 && v2.v === 2) {
+    try { applyState(v2); }
+    catch (e) { P = blank(); }
+    if (v1 && sessionsEmpty()) {
+      applyMigration(v1);
+      if (save()) commitArchive(v1);
+      return;
+    }
+    if (v1) {
+      keepLegacyRaw(v1);
+      if (save()) commitArchive(v1);
+      return;
+    }
+    save();
+    return;
+  }
+  if (v1) {
+    applyMigration(v1);
+    if (save()) commitArchive(v1);
+    return;
+  }
+  const arch = readJSON(KEY_V1_ARCH);
+  if (arch && Array.isArray(arch.deck)) {
+    applyMigration(arch);
+    if (P.legacy) P.legacy.detail += " Restored from the on-device backup.";
+    save();
+  }
+}
+function sessionOf(active) { return active === "mixed" ? P.mixed : P.sections[active]; }
+function gradeSection(id) {
+  const sess = P.sections[id];
+  const deck = resolveDeck(sess);
+  const t = tally(deck, sess);
+  const complete = !!(sess.finished && deck.length && t.answered === deck.length && coversAll(deck, id));
+  let status, label;
+  if (!deck.length) { status = "new"; label = "Not started"; }
+  else if (!complete) { status = "progress"; label = "In progress"; }
+  else if (t.missed <= PASS_MAX) { status = "pass"; label = "PASS"; }
+  else { status = "needs"; label = "NEEDS WORK"; }
+  const pos = deck.length ? Math.max(0, Math.min(sess.pos || 0, deck.length - 1)) : 0;
+  return Object.assign({ deck, total: itemsIn(id).length, status, label, pos }, t);
+}
+function gradeMixed() {
+  const sess = P.mixed;
+  const deck = resolveDeck(sess);
+  const t = tally(deck, sess);
+  const complete = !!(sess.finished && deck.length && t.answered === deck.length);
+  let status, label;
+  if (!deck.length) { status = "new"; label = "Not started"; }
+  else if (!complete) { status = "progress"; label = "In progress"; }
+  else { status = "done"; label = "Finished"; }
+  const pos = deck.length ? Math.max(0, Math.min(sess.pos || 0, deck.length - 1)) : 0;
+  return Object.assign({ deck, status, label, pos }, t);
+}
+function mixedRows() {
+  const deck = resolveDeck(P.mixed);
+  const rows = [];
+  SECTIONS.forEach(s => {
+    const sub = deck.filter(it => it.sec === s.id);
+    if (!sub.length) return;
+    const t = tally(sub, P.mixed);
+    const complete = !!(P.mixed.finished && t.answered === sub.length && coversAll(sub, s.id));
+    let status, label;
+    if (!complete) { status = "progress"; label = "In progress"; }
+    else if (t.missed <= PASS_MAX) { status = "pass"; label = "PASS"; }
+    else { status = "needs"; label = "NEEDS WORK"; }
+    rows.push(Object.assign({ s, n: sub.length, status, label }, t));
+  });
+  return rows;
+}
+function mixedSectionStats(id) {
+  const sub = resolveDeck(P.mixed).filter(it => it.sec === id);
+  return tally(sub, P.mixed);
+}
+function maybeComplete(active) {
+  const sess = sessionOf(active);
+  if (!sess) return;
+  const deck = resolveDeck(sess);
+  const gaps = deck.some(it => answerIndex(it, sess) < 0);
+  if (!deck.length || gaps) { sess.finished = false; return; }
+  if (active !== "mixed" && !coversAll(deck, active)) { sess.finished = false; return; }
+  sess.finished = true;
+}
+function shuf(a) {
+  a = a.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function startSession(active) {
+  const sess = sessionOf(active);
+  const shuffle = sess.shuffle !== false;
+  const filter = active === "mixed" ? (sess.filter || "all") : null;
+  let items = active === "mixed" ? ITEMS.filter(it => filter === "all" || it.sec === filter) : itemsIn(active);
+  if (shuffle) items = shuf(items);
+  sess.shuffle = shuffle;
+  if (filter) sess.filter = filter;
+  sess.deck = items.map(QID);
+  sess.pos = 0;
+  sess.answers = {};
+  sess.finished = false;
+  ui.active = active;
+  ui.view = "quiz";
+  ui.confirmEnd = false;
+  ui.confirmRestart = null;
+  ui.note = "";
+  save();
+}
+function resetSession(active) {
+  if (active === "mixed") {
+    P.mixed = Object.assign(blankSession(), { shuffle: P.mixed.shuffle !== false, filter: P.mixed.filter || "all" });
+  } else if (P.sections[active]) {
+    P.sections[active] = Object.assign(blankSession(), { shuffle: P.sections[active].shuffle !== false });
+  }
+  ui.confirmRestart = null;
+  ui.view = "home";
+  ui.note = "";
+  save();
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const secName = id => (SECTIONS.find(s => s.id === id) || { name: id }).name;
+function btn(action, section, label, cls) {
+  return `<button type="button"${cls ? ` class="${cls}"` : ""} data-action="${action}"${section ? ` data-section="${section}"` : ""}>${label}</button>`;
+}
+function priorRow(id) {
+  return mixedRows().find(r => r.s.id === id);
+}
+function cardClass(g, s) {
+  if (g.status === "needs") return "needs";
+  if (g.status === "pass") return "pass";
+  if (g.status === "progress" && g.missed >= 3) return "watch";
+  const prior = s && priorRow(s.id);
+  if (g.status === "new" && prior && prior.status === "needs") return "needs";
+  return "";
+}
+function badgeClass(status) {
+  if (status === "pass") return "pass";
+  if (status === "needs") return "fail";
+  if (status === "progress" || status === "done") return "prog";
+  return "new";
+}
+function sectionCard(s, g) {
+  const denom = g.deck.length || g.total;
+  const pct = denom ? Math.round(g.answered / denom * 100) : 0;
+  const stats = g.deck.length
+    ? `Answered ${g.answered}/${g.deck.length} · Correct ${g.correct} · Missed ${g.missed}`
+    : `${g.total} questions · not started`;
+  let place = "";
+  if (g.deck.length && g.status === "progress") place = `<div class="meta">Saved place: question ${g.pos + 1} of ${g.deck.length}</div>`;
+  let prior = "";
+  if (g.status === "new") {
+    const m = mixedSectionStats(s.id);
+    if (m.answered) prior = `<div class="meta">Earlier mixed quiz: ${m.answered} answered · ${m.correct} correct · ${m.missed} missed. Not a section grade.</div>`;
+  }
+  let actions;
+  if (ui.confirmRestart === s.id) {
+    actions = `<div class="co warn" data-confirm="restart" data-section="${s.id}"><b>Restart ${esc(s.name)} only?</b><p>This erases answers and the saved place for ${esc(s.name)}. The other sections stay as they are.</p><div class="row">${btn("restart-yes", s.id, "Yes, restart " + esc(s.name), "pri")}${btn("restart-no", "", "Cancel", "")}</div></div>`;
+  } else if (!g.deck.length) {
+    actions = `<label class="tg"><input type="checkbox" data-shuffle="${s.id}" ${P.sections[s.id].shuffle !== false ? "checked" : ""}> Shuffle question order</label><div class="row">${btn("start", s.id, "Start " + esc(s.name), "pri")}</div>`;
+  } else if (g.status === "progress") {
+    actions = `<div class="row">${btn("resume", s.id, "Resume at question " + (g.pos + 1), "pri")}${g.missed ? btn("review", s.id, "Review missed (" + g.missed + ")", "") : ""}${btn("restart", s.id, "Restart", "")}</div>`;
+  } else {
+    const reviewLabel = g.missed ? "Review missed (" + g.missed + ")" : "See result";
+    actions = `<div class="row">${btn("review", s.id, reviewLabel, "pri")}${btn("resume", s.id, "Open question " + (g.pos + 1), "")}${btn("restart", s.id, "Restart", "")}</div>`;
+  }
+  const hint = s.hint ? ` <span class="hint">${esc(s.hint)}</span>` : "";
+  const priorStatus = priorRow(s.id);
+  const priorAttr = priorStatus ? ` data-prior="${priorStatus.status}"` : "";
+  return `<article class="card ${cardClass(g, s)}" data-section="${s.id}" data-status="${g.status}" data-missed="${g.missed}" data-correct="${g.correct}" data-answered="${g.answered}" data-pos="${g.pos}" data-len="${g.deck.length}"${priorAttr}><div class="cardhead"><h3>${esc(s.name)}${hint}</h3><span class="badge ${badgeClass(g.status)}">${esc(g.label)}</span></div><p class="meta">${g.total} questions</p><p>${stats}</p>${place}${prior}<div class="bar" aria-hidden="true"><span style="width:${pct}%"></span></div>${actions}</article>`;
+}
+function mixedCard() {
+  const g = gradeMixed();
+  const rows = mixedRows();
+  const needs = rows.filter(r => r.status === "needs");
+  const cls = needs.length ? "needs" : (g.status === "progress" && g.missed >= 3 ? "watch" : "");
+  let body = `<p class="meta">Secondary. One quiz across every section, or a single section, in the earlier mixed format. It does not reset the section quizzes.</p>`;
+  if (ui.confirmRestart === "mixed") {
+    body += `<div class="co warn" data-confirm="restart" data-section="mixed"><b>Restart the mixed quiz only?</b><p>This erases the mixed quiz's answers and saved place. Section quizzes stay as they are.</p><div class="row">${btn("restart-yes", "mixed", "Yes, restart mixed quiz", "pri")}${btn("restart-no", "", "Cancel", "")}</div></div>`;
+  } else if (!g.deck.length) {
+    const opts = [`<option value="all" ${P.mixed.filter === "all" ? "selected" : ""}>All sections (${ITEMS.length})</option>`]
+      .concat(SECTIONS.map(s => `<option value="${s.id}" ${P.mixed.filter === s.id ? "selected" : ""}>${esc(s.name)} (${itemsIn(s.id).length})</option>`)).join("");
+    body += `<label>Section <select id="mix-filter">${opts}</select></label><label class="tg"><input type="checkbox" id="mix-shuffle" ${P.mixed.shuffle !== false ? "checked" : ""}> Shuffle question order</label><div class="row">${btn("start", "mixed", "Start mixed quiz", "pri")}</div>`;
+  } else {
+    body += `<p>Answered ${g.answered}/${g.deck.length} · Correct ${g.correct} · Missed ${g.missed}</p>`;
+    if (g.status === "progress") body += `<div class="meta">Saved place: question ${g.pos + 1} of ${g.deck.length}</div>`;
+    if (rows.length) {
+      body += `<table><tr><th>Section</th><th>Correct</th><th>Missed</th><th>Result</th></tr>`;
+      rows.forEach(r => {
+        const mark = r.status === "pass" ? "pass" : r.status === "needs" ? "fail" : "";
+        body += `<tr data-mixed-section="${r.s.id}" data-status="${r.status}"><td>${esc(r.s.name)}</td><td>${r.correct}/${r.answered}</td><td>${r.missed}</td><td class="${mark}">${esc(r.label)}</td></tr>`;
+      });
+      body += `</table><p class="meta">A section inside the mixed quiz is graded only when every question from that section was in the quiz and all of them are answered. Otherwise it stays In progress.</p>`;
+    }
+    const openLabel = (g.status === "progress" ? "Resume at question " : "Open question ") + (g.pos + 1);
+    body += `<div class="row">${btn("resume", "mixed", openLabel, g.status === "progress" ? "pri" : "")}${g.missed ? btn("review", "mixed", "Review missed (" + g.missed + ")", g.status === "progress" ? "" : "pri") : (g.status === "done" ? btn("review", "mixed", "See result", "pri") : "")}${btn("restart", "mixed", "Restart", "")}</div>`;
+  }
+  let label = g.label;
+  let bstat = g.status;
+  if (g.status === "done" && needs.length) { label = "NEEDS WORK"; bstat = "needs"; }
+  return `<section><h2>Mixed quiz</h2><article class="card ${cls}" id="mixed" data-section="mixed" data-status="${needs.length ? "needs" : g.status}" data-missed="${g.missed}" data-correct="${g.correct}" data-answered="${g.answered}" data-pos="${g.pos}" data-len="${g.deck.length}"><div class="cardhead"><h3>Mixed practice</h3><span class="badge ${badgeClass(bstat)}">${esc(label)}</span></div>${body}</article></section>`;
+}
+function renderHome() {
+  const grades = SECTIONS.map(s => ({ s, g: gradeSection(s.id) }));
+  const needs = grades.filter(x => x.g.status === "needs");
+  const watch = grades.filter(x => x.g.status === "progress" && x.g.missed >= 3);
+  const priorNeeds = grades.filter(x => x.g.status !== "needs" && priorRow(x.s.id) && priorRow(x.s.id).status === "needs");
+  let h = "";
+  if (P.legacy && !P.legacy.dismissed && P.legacy.detail) {
+    h += `<section class="co info" data-legacy-banner><b>Earlier progress kept</b><p>${esc(P.legacy.detail)}</p><p class="meta">The original save stays on this device. Restarting a section does not delete it.</p><div class="row">${btn("dismiss-legacy", "", "Hide this note", "")}</div></section>`;
+  }
+  h += `<section id="dash"><h2>Section quizzes</h2><p class="meta">Each section is its own quiz. It saves every answer and the exact question you are on. A finished section with 0–2 missed is <b>PASS</b>. 3 or more missed is <b>NEEDS WORK</b>. That line is a practice threshold, not an official score. An unfinished section stays <b>In progress</b> and is not passed.</p>`;
+  if (needs.length || watch.length || priorNeeds.length) {
+    const bits = [];
+    if (needs.length) bits.push(`<b>Needs attention:</b> ${needs.map(x => esc(x.s.name) + " (" + x.g.missed + " missed)").join(", ")}`);
+    if (priorNeeds.length) bits.push(`<b>Mixed quiz needs attention:</b> ${priorNeeds.map(x => { const r = priorRow(x.s.id); return esc(x.s.name) + " (" + r.missed + " missed)"; }).join(", ")}. That grade is on the mixed quiz, not a new section attempt.`);
+    if (watch.length) bits.push(`<b>In progress, 3 or more missed so far:</b> ${watch.map(x => esc(x.s.name) + " (" + x.g.missed + " missed)").join(", ")}. Not graded yet.`);
+    h += `<div class="co warn" data-attention="${needs.length || priorNeeds.length ? "needs" : "watch"}">${bits.join("<br>")}</div>`;
+  } else {
+    h += `<div class="co good" data-attention="clear"><b>No finished section needs work.</b><p>Finish a section to grade it. Three or more missed will be highlighted here.</p></div>`;
+  }
+  grades.forEach(x => { h += sectionCard(x.s, x.g); });
+  h += `</section>`;
+  h += mixedCard();
+  if (!canSave) h += `<section class="co warn"><b>Progress can't be saved here</b><p>Storage is blocked, so progress lasts only while this page is open.</p></section>`;
+  h += `<p class="meta foot"><a href="POE_Quiz_singlefile.html" download="POE_Quiz_singlefile.html">Download the one-file quiz</a>. It includes every question and works offline as a single HTML file.</p>`;
+  return h;
+}
+function currentGrade() {
+  return ui.active === "mixed" ? gradeMixed() : gradeSection(ui.active);
+}
+function renderQuiz() {
+  const active = ui.active;
+  const sess = sessionOf(active);
+  const deck = resolveDeck(sess);
+  if (!sess || !deck.length) { ui.view = "home"; return renderHome(); }
+  if (sess.pos >= deck.length) sess.pos = deck.length - 1;
+  if (sess.pos < 0) sess.pos = 0;
+  const cur = deck[sess.pos];
+  const picked = answerIndex(cur, sess);
+  const g = currentGrade();
+  const title = active === "mixed" ? "Mixed quiz" : secName(active);
+  let h = `<section data-quiz="${active}"><div class="endrow">${ui.confirmEnd ? "" : `<button type="button" class="endbtn" data-action="end">End test</button>`}</div>`;
+  if (ui.confirmEnd) {
+    const incomplete = g.status === "progress" || g.status === "new";
+    h += `<div class="co danger" data-confirm="end"><b>End test now? Your progress is saved.</b>${incomplete ? `<p>This quiz stays <b>In progress</b> until every question is answered. It is not graded and will not show PASS.</p>` : ""}<div class="row">${btn("end-yes", active, "Yes, end test", "dangerbtn")}${btn("end-stay", "", "Keep going", "pri")}</div></div>`;
+  }
+  if (ui.note) h += `<div class="co warn" data-note>${esc(ui.note)}</div>`;
+  h += `<div class="meta" data-pos="${sess.pos}" data-len="${deck.length}" data-active="${active}">Question ${sess.pos + 1} of ${deck.length} · ${esc(active === "mixed" ? secName(cur.sec) : title)} · ${g.answered} answered · ${g.correct} correct · ${g.missed} missed</div>`;
+  h += `<h3 data-qid="${QID(cur)}">${esc(cur.q)}</h3>`;
+  h += cur.opts.map((o, i) => {
+    let c = "opt";
+    if (picked >= 0) { if (i === cur.ans) c += " ok"; else if (i === picked) c += " bad"; }
+    return `<button type="button" class="${c}" data-action="pick" data-pick="${i}" ${picked >= 0 ? "disabled" : ""}><b>${"ABCD"[i]}.</b> ${esc(o)}</button>`;
+  }).join("");
+  if (picked >= 0) h += `<div class="co ${picked === cur.ans ? "good" : "warn"}"><b>${picked === cur.ans ? "Correct" : "Incorrect — answer: " + "ABCD"[cur.ans]}</b><p>${esc(cur.expl)}</p><p class="cite">${esc(cur.cite)}</p></div>`;
+  h += `<div class="row">${btn("prev", "", "Previous", "")}${sess.pos < deck.length - 1 ? btn("next", "", "Next", "pri") : btn("finish", "", "Finish", "pri")}${btn("home", "", "Sections", "")}</div></section>`;
+  if (g.status === "pass" || g.status === "needs") h += `<section class="co ${g.status === "pass" ? "good" : "warn"}" data-grade="${g.status}"><b>${esc(title)}: ${g.label}</b><p>Correct ${g.correct} · Missed ${g.missed} · ${g.answered}/${g.deck.length} answered.</p><p class="meta">PASS = 0–2 missed. NEEDS WORK = 3 or more missed. Practice threshold, not an official score.</p></section>`;
+  if (active === "mixed" && g.status === "done") h += mixedScoreTable();
+  return h;
+}
+function mixedScoreTable() {
+  const rows = mixedRows();
+  let h = `<section data-grade="mixed"><h2>Mixed quiz scores</h2><table><tr><th>Section</th><th>Correct</th><th>Missed</th><th>Result</th></tr>`;
+  rows.forEach(r => {
+    const mark = r.status === "pass" ? "pass" : r.status === "needs" ? "fail" : "";
+    h += `<tr data-mixed-section="${r.s.id}" data-status="${r.status}"><td>${esc(r.s.name)}</td><td>${r.correct}/${r.answered}</td><td>${r.missed}</td><td class="${mark}">${esc(r.label)}</td></tr>`;
+  });
+  h += `</table><p class="meta">PASS = 0–2 missed on a finished full section. NEEDS WORK = 3 or more missed. A partial section stays In progress.</p></section>`;
+  return h;
+}
+function renderReview() {
+  const active = ui.active;
+  const g = active === "mixed" ? gradeMixed() : gradeSection(active);
+  const title = active === "mixed" ? "Mixed quiz" : secName(active);
+  const graded = g.status === "pass" || g.status === "needs";
+  let h = `<section data-review-for="${active}"><h2>${g.missed ? "Missed questions" : "Result"} — ${esc(title)}</h2>`;
+  if (active === "mixed" && g.status === "done") {
+    const needs = mixedRows().filter(r => r.status === "needs");
+    h += `<div class="co ${needs.length ? "warn" : "good"}" data-grade="${needs.length ? "needs" : "done"}"><b>Finished</b><p>Correct ${g.correct} · Missed ${g.missed} · ${g.answered}/${g.deck.length} answered.</p><p class="meta">Each full section is graded on its own. PASS = 0–2 missed. NEEDS WORK = 3 or more missed. A partial section stays In progress. The mixed quiz itself is not given a single PASS.</p></div>`;
+  } else if (graded) h += `<div class="co ${g.status === "pass" ? "good" : "warn"}" data-grade="${g.status}"><b>${g.label}</b><p>Correct ${g.correct} · Missed ${g.missed} · ${g.answered}/${g.deck.length} answered.</p><p class="meta">PASS = 0–2 missed. NEEDS WORK = 3 or more missed. Practice threshold, not an official score.</p></div>`;
+  else h += `<div class="co warn" data-grade="progress"><b>In progress</b><p>Correct ${g.correct} · Missed ${g.missed} · ${g.answered}/${g.deck.length || g.total || 0} answered. This quiz is not graded and is not a pass.</p></div>`;
+  h += `<div class="row">${btn("home", "", "Back to sections", "pri")}${g.deck.length && g.status === "progress" ? btn("resume", active, "Resume", "") : ""}${g.deck.length ? btn("restart", active, "Restart", "") : ""}</div>`;
+  if (!g.missedItems.length) h += `<p>No missed questions in this saved quiz.</p>`;
+  g.missedItems.forEach(({ it, chosen }) => {
+    h += `<div class="miss" data-review="${QID(it)}"><div class="meta">${esc(secName(it.sec))}</div><b>${esc(it.q)}</b><p>Your answer: ${esc(it.opts[chosen])}<br>Correct: ${esc(it.opts[it.ans])}</p><p>${esc(it.expl)}</p><p class="cite">${esc(it.cite)}</p></div>`;
+  });
+  if (active === "mixed" && (g.status === "done" || graded)) h += mixedScoreTable();
+  h += `</section>`;
+  return h;
+}
+function render() {
+  const app = document.getElementById("app");
+  if (ui.view === "quiz") app.innerHTML = renderQuiz();
+  else if (ui.view === "review") app.innerHTML = renderReview();
+  else app.innerHTML = renderHome();
+  const prev = document.querySelector('[data-action="prev"]');
+  if (prev && ui.view === "quiz") {
+    const sess = sessionOf(ui.active);
+    if (!sess || !sess.pos) prev.disabled = true;
+  }
+}
+function goQuiz(active) {
+  ui.active = active;
+  ui.view = "quiz";
+  ui.confirmEnd = false;
+  ui.note = "";
+  render();
+  scrollTo(0, 0);
+}
+function onClick(e) {
+  const button = e.target.closest("button");
+  if (!button || !document.getElementById("app").contains(button)) return;
+  const action = button.dataset.action;
+  const section = button.dataset.section || ui.active;
+  if (action === "start") { startSession(section); render(); scrollTo(0, 0); return; }
+  if (action === "resume") { goQuiz(section); return; }
+  if (action === "home") { ui.view = "home"; ui.confirmEnd = false; ui.note = ""; save(); render(); scrollTo(0, 0); return; }
+  if (action === "restart") { ui.confirmRestart = section; ui.view = "home"; ui.confirmEnd = false; render(); return; }
+  if (action === "restart-no") { ui.confirmRestart = null; render(); return; }
+  if (action === "restart-yes") { resetSession(section); render(); return; }
+  if (action === "review") { ui.active = section; ui.view = "review"; ui.note = ""; render(); scrollTo(0, 0); return; }
+  if (action === "dismiss-legacy") { if (P.legacy) P.legacy.dismissed = true; save(); render(); return; }
+  if (action === "end") { ui.confirmEnd = true; render(); return; }
+  if (action === "end-stay") { ui.confirmEnd = false; render(); return; }
+  if (action === "end-yes") {
+    ui.confirmEnd = false;
+    const g = currentGrade();
+    save();
+    if (g.status === "pass" || g.status === "needs" || g.status === "done") { ui.view = "review"; render(); scrollTo(0, 0); }
+    else { ui.view = "home"; ui.note = ""; render(); scrollTo(0, 0); }
+    return;
+  }
+  if (action === "prev" || action === "next") {
+    const sess = sessionOf(ui.active);
+    if (!sess) return;
+    sess.pos += action === "next" ? 1 : -1;
+    if (sess.pos < 0) sess.pos = 0;
+    const deck = resolveDeck(sess);
+    if (sess.pos >= deck.length) sess.pos = Math.max(0, deck.length - 1);
+    ui.note = "";
+    save();
+    render();
+    scrollTo(0, 0);
+    return;
+  }
+  if (action === "finish") {
+    const sess = sessionOf(ui.active);
+    const deck = resolveDeck(sess);
+    const gap = deck.findIndex(it => answerIndex(it, sess) < 0);
+    if (gap >= 0 || (ui.active !== "mixed" && !coversAll(deck, ui.active))) {
+      if (gap >= 0) sess.pos = gap;
+      ui.note = "Still In progress. Answer every question before this quiz can be graded. It is not a pass.";
+      save();
+      render();
+      scrollTo(0, 0);
+      return;
+    }
+    maybeComplete(ui.active);
+    save();
+    ui.view = "review";
+    ui.note = "";
+    render();
+    scrollTo(0, 0);
+    return;
+  }
+  if (action === "pick") {
+    const sess = sessionOf(ui.active);
+    const deck = resolveDeck(sess);
+    const cur = deck[sess.pos];
+    if (!cur || answerIndex(cur, sess) >= 0) return;
+    const i = Number(button.dataset.pick);
+    if (!cur.opts[i]) return;
+    sess.answers[QID(cur)] = cur.opts[i];
+    maybeComplete(ui.active);
+    ui.note = "";
+    save();
+    render();
+  }
+}
+function onChange(e) {
+  const t = e.target;
+  if (t.dataset && t.dataset.shuffle && P.sections[t.dataset.shuffle]) {
+    P.sections[t.dataset.shuffle].shuffle = !!t.checked;
+    save();
+  }
+  if (t.id === "mix-filter") { P.mixed.filter = t.value; save(); }
+  if (t.id === "mix-shuffle") { P.mixed.shuffle = !!t.checked; save(); }
+}
+load();
+render();
+document.getElementById("app").addEventListener("click", onClick);
+document.getElementById("app").addEventListener("change", onChange);
+window.POE = { QID, ITEMS, SECTIONS, KEY, KEY_V1, KEY_V1_ARCH, PASS_MAX, gradeSection, gradeMixed, migrateV1, state: () => P };
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  let hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) { hadController = true; return; }
+    if (sessionStorage.getItem("poe-reloaded") === "1") return;
+    sessionStorage.setItem("poe-reloaded", "1");
+    location.reload();
+  });
+  setTimeout(() => sessionStorage.removeItem("poe-reloaded"), 4000);
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => {});
+}
 </script></body></html>
