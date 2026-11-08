@@ -82,8 +82,8 @@ function startServer() {
   });
 }
 
-const STUB_V23 = `const C="poe-quiz-v23",F=["./","./index.html","./POE_Quiz_singlefile.html","./manifest.json","./icon.svg","./icon-192.png","./icon-512.png"];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(async c=>{await c.addAll(F); await c.put("marker-v23", new Response("old-cache"));}));self.skipWaiting()});
+const STUB_V24 = `const C="poe-quiz-v24",F=["./","./index.html","./POE_Quiz_singlefile.html","./manifest.json","./icon.svg","./icon-192.png","./icon-512.png"];
+self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(async c=>{await c.addAll(F); await c.put("marker-v24", new Response("old-cache"));}));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});
 self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request)))});
 `;
@@ -117,6 +117,7 @@ async function card(page, id) {
     missed: el.dataset.missed,
     correct: el.dataset.correct,
     answered: el.dataset.answered,
+    score: el.dataset.score || "",
     pos: el.dataset.pos,
     len: el.dataset.len,
     prior: el.dataset.prior || "",
@@ -164,7 +165,7 @@ function checkBank() {
   ok(bank.some(b => b[1].includes("where must a driver keep the hazmat shipping papers")), "the other shipping-paper question stays");
   ok(!/\bD3\b/.test(html), "no D3 name added");
   ok(html.includes("district supervisor"), "existing district wording kept");
-  ok(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8").includes('const C="poe-quiz-v24"'), "service worker cache is v24");
+  ok(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8").includes('const C="poe-quiz-v25"'), "service worker cache is v25");
   const counts = {};
   bank.forEach(b => { counts[b[0]] = (counts[b[0]] || 0) + 1; });
   ok(counts.wt === 71 && counts.size === 67 && counts.haz === 41 && counts.sec === 30 && counts.eqp === 35 && counts.rov === 34 && counts.wim === 31 && counts.reg === 68, "HazMat is 41 and every other section count is unchanged");
@@ -189,10 +190,59 @@ async function main() {
         ans: q.opts[q.ans],
         district: POE.ITEMS.some(it => it.opts.some(o => o.includes("district supervisor"))),
         d3: POE.ITEMS.some(it => (it.q + it.opts.join(" ") + it.expl + it.cite).includes("D3")),
-        passMax: POE.PASS_MAX
+        line: {
+          p27: POE.passes(27, 30), p26: POE.passes(26, 30), p28: POE.passes(28, 30),
+          p64: POE.passes(64, 71), p63: POE.passes(63, 71),
+          p61: POE.passes(61, 67), p60: POE.passes(60, 67),
+          p37: POE.passes(37, 41), p36: POE.passes(36, 41),
+          p32: POE.passes(32, 35), p31: POE.passes(31, 35),
+          r31: POE.passes(31, 34), r30: POE.passes(30, 34),
+          w28: POE.passes(28, 31), w27: POE.passes(27, 31),
+          g62: POE.passes(62, 68), g61: POE.passes(61, 68),
+          pct27: POE.scorePct(27, 30), pct26: POE.scorePct(26, 30), pct63: POE.scorePct(63, 71), pct64: POE.scorePct(64, 71)
+        }
       };
     });
-    ok(spot.n === 377 && spot.ans === "34,000 lbs" && spot.district && !spot.d3 && spot.passMax === 2, "loaded bank keeps lbs wording and the 2-miss practice line");
+    ok(spot.n === 377 && spot.ans === "34,000 lbs" && spot.district && !spot.d3, "loaded bank keeps lbs wording");
+    ok(spot.line.p27 && !spot.line.p26 && spot.line.p28 && spot.line.p64 && !spot.line.p63 && spot.line.p61 && !spot.line.p60 && spot.line.p37 && !spot.line.p36 && spot.line.p32 && !spot.line.p31 && spot.line.r31 && !spot.line.r30 && spot.line.w28 && !spot.line.w27 && spot.line.g62 && !spot.line.g61, "90% uses an exact ratio for every section length");
+    ok(spot.line.pct27 === "90.0%" && spot.line.pct26 === "86.6%" && spot.line.pct63 === "88.7%" && spot.line.pct64 === "90.1%", "a score under 90% is not displayed as 90%");
+
+    async function putMisses(spec) {
+      await page.evaluate(spec => {
+        const sections = {};
+        POE.SECTIONS.forEach(s => { sections[s.id] = { shuffle: false, deck: [], pos: 0, answers: {}, finished: false }; });
+        for (const id in spec) {
+          const items = POE.ITEMS.filter(it => it.sec === id);
+          const answers = {};
+          items.forEach((it, i) => {
+            answers[POE.QID(it)] = i < spec[id] ? it.opts.find((_, k) => k !== it.ans) : it.opts[it.ans];
+          });
+          sections[id] = { shuffle: false, deck: items.map(POE.QID), pos: 0, answers, finished: true };
+        }
+        localStorage.setItem(POE.KEY, JSON.stringify({ v: 2, sections, mixed: { shuffle: true, filter: "all", deck: [], pos: 0, answers: {}, finished: false }, legacy: null }));
+      }, spec);
+      await page.reload({ waitUntil: "load" });
+      await page.waitForSelector("#dash");
+    }
+    await putMisses({ sec: 3, wt: 7, size: 7, haz: 4, eqp: 4, rov: 3, wim: 4, reg: 6 });
+    const line = {};
+    for (const id of ["sec", "wt", "size", "haz", "eqp", "rov", "wim", "reg"]) line[id] = await card(page, id);
+    ok(line.sec.status === "pass" && line.sec.correct === "27" && line.sec.score === "90.0%" && line.sec.answered === "30", "27/30 is exactly 90% and passes");
+    ok(line.wt.status === "pass" && line.wt.correct === "64" && line.wt.score === "90.1%", "64/71 passes");
+    ok(line.size.status === "needs" && line.size.correct === "60" && line.size.score === "89.5%", "60/67 is below 90%");
+    ok(line.haz.status === "pass" && line.haz.correct === "37", "37/41 passes");
+    ok(line.eqp.status === "needs" && line.eqp.correct === "31", "31/35 is below 90%");
+    ok(line.rov.status === "pass" && line.rov.correct === "31", "31/34 passes");
+    ok(line.wim.status === "needs" && line.wim.correct === "27", "27/31 is below 90%");
+    ok(line.reg.status === "pass" && line.reg.correct === "62", "62/68 passes");
+    const secKept = await page.evaluate(() => Object.keys(POE.state().sections.sec.answers).length);
+    await putMisses({ sec: 4 });
+    const below = await card(page, "sec");
+    ok(below.status === "needs" && below.correct === "26" && below.score === "86.6%" && below.answered === "30" && secKept === 30, "26/30 does not pass and the saved answers remain");
+    await putMisses({ sec: 2 });
+    const above = await card(page, "sec");
+    ok(above.status === "pass" && above.correct === "28" && above.score === "93.3%", "28/30 passes");
+    await page.evaluate(() => localStorage.clear());
     ok(page.__errors.length === 0, "home page has no script errors: " + page.__errors.join(" | "));
 
     const removed = ["haz:egde7o", "haz:1cig5l", "haz:1fa98sb", "haz:788p4", "haz:fme9xb", "haz:14cn7ir", "haz:d51sr7", "haz:1wb9lbe", "haz:15wpdls"];
@@ -432,7 +482,7 @@ async function main() {
       const sections = {};
       SECTIONS.forEach(s => { sections[s.id] = { shuffle: true, deck: [], pos: 0, answers: {}, finished: false }; });
       sections.wt = sess("wt", 2, 0);
-      sections.size = sess("size", 3, 0);
+      sections.size = sess("size", 7, 0);
       sections.haz = sess("haz", 0, ITEMS.filter(it => it.sec === "haz").length - 10);
       sections.haz.pos = 5;
       sections.sec = sess("sec", 1, 0);
@@ -441,7 +491,7 @@ async function main() {
       sections.rov.pos = 20;
       sections.wim = sess("wim", 0, 1);
       sections.wim.pos = sections.wim.deck.length - 1;
-      sections.reg = sess("reg", 3, 1);
+      sections.reg = sess("reg", 7, 1);
       sections.reg.pos = sections.reg.deck.length - 1;
       localStorage.setItem(KEY, JSON.stringify({
         v: 2, sections,
@@ -460,18 +510,18 @@ async function main() {
     const rov = await card(page, "rov");
     const wim = await card(page, "wim");
     const reg = await card(page, "reg");
-    ok(wt.status === "pass" && wt.badge === "PASS" && wt.missed === "2" && wt.answered === "71" && wt.correct === "69", "2 missed on a finished section is PASS");
-    ok(size.status === "needs" && size.badge === "NEEDS WORK" && size.missed === "3" && size.answered === "67" && size.correct === "64" && size.cls.includes("needs"), "3 missed on a finished section is NEEDS WORK");
+    ok(wt.status === "pass" && wt.badge === "PASS" && wt.missed === "2" && wt.answered === "71" && wt.correct === "69" && wt.score === "97.1%", "a finished Weight score of 69/71 stays PASS");
+    ok(size.status === "needs" && size.badge === "NEEDS WORK" && size.missed === "7" && size.answered === "67" && size.correct === "60" && size.score === "89.5%" && size.cls.includes("needs"), "60/67 is below 90% and is NEEDS WORK");
     ok(sec.status === "pass" && sec.missed === "1" && sec.badge === "PASS", "1 missed is PASS");
     ok(eqp.status === "pass" && eqp.missed === "0" && eqp.badge === "PASS", "0 missed is PASS");
     ok(haz.status === "progress" && haz.badge === "In progress" && haz.missed === "0" && haz.answered === "10" && haz.pos === "5" && !haz.cls.includes("pass"), "unfinished section with no misses stays In progress");
     const hazFinished = await page.evaluate(() => POE.state().sections.haz.finished);
     ok(hazFinished === false, "a saved finished flag does not pass a section that still has unanswered questions");
-    ok(rov.status === "progress" && rov.badge === "In progress" && rov.missed === "4" && rov.pos === "20" && rov.cls.includes("watch") && !rov.cls.includes("needs"), "in-progress section with 4 misses is watched, not failed");
+    ok(rov.status === "progress" && rov.badge === "In progress" && rov.missed === "4" && rov.pos === "20" && rov.cls.includes("watch") && !rov.cls.includes("needs"), "an in-progress Rover quiz that cannot reach 90% is watched, not failed");
     ok(wim.status === "progress" && wim.badge === "In progress" && wim.missed === "0" && wim.answered === "30", "one question left is still In progress");
-    ok(reg.status === "progress" && reg.badge === "In progress" && reg.missed === "3" && reg.cls.includes("watch"), "3 misses do not fail a section until it is finished");
+    ok(reg.status === "progress" && reg.badge === "In progress" && reg.missed === "7" && reg.cls.includes("watch"), "Registration stays In progress while one question remains, even though 90% is already out of reach");
     const attention = await page.$eval("[data-attention]", el => ({ kind: el.dataset.attention, text: el.textContent }));
-    ok(attention.kind === "needs" && attention.text.includes("Size") && attention.text.includes("3 missed") && attention.text.includes("Rover") && attention.text.includes("Registration"), "dashboard names the sections that need attention and the unfinished ones with 3 or more misses");
+    ok(attention.kind === "needs" && attention.text.includes("Size") && attention.text.includes("89.5%") && attention.text.includes("90%") && attention.text.includes("Rover") && attention.text.includes("Registration"), "dashboard names finished sections below 90% and unfinished sections that can no longer reach 90%");
     const names = await page.$$eval("#dash article h3", els => els.map(el => el.textContent.replace(/\s+/g, " ").trim()));
     ok(names.join(" | ") === "Weight | Size | HazMat | Securement | Equipment | Rover Roving POE | WIM/bypass | Registration", "home lists the eight section quizzes: " + names.join(" | "));
 
@@ -551,7 +601,7 @@ async function main() {
     await page.click('[data-action="restart-yes"]');
     const hazReset = await card(page, "haz");
     ok(hazReset.status === "new" && hazReset.len === "0" && hazReset.badge === "Not started", "confirmed restart clears HazMat");
-    ok((await card(page, "size")).missed === "3" && (await card(page, "size")).status === "needs", "Size grade survives a HazMat restart");
+    ok((await card(page, "size")).missed === "7" && (await card(page, "size")).status === "needs", "Size grade survives a HazMat restart");
     ok((await card(page, "rov")).pos === "20" && (await card(page, "rov")).missed === "4", "Rover place survives a HazMat restart");
     ok((await card(page, "wt")).status === "pass" && (await card(page, "wim")).answered === "30", "Weight and WIM/bypass survive a HazMat restart");
 
@@ -568,7 +618,7 @@ async function main() {
       });
       return { n: blocks.length, missed: g.missed, all, grade: document.querySelector("[data-grade]").dataset.grade };
     });
-    ok(review.grade === "needs" && review.n === 3 && review.missed === 3 && review.all, "missed Size questions show the chosen answer, correct answer, explanation, and citation");
+    ok(review.grade === "needs" && review.n === 7 && review.missed === 7 && review.all, "missed Size questions show the chosen answer, correct answer, explanation, and citation");
     await shot(page, "review_missed.png");
     await page.click('[data-action="home"]');
 
@@ -594,7 +644,7 @@ async function main() {
     await page.waitForSelector('[data-grade="needs"]');
     await page.click('[data-action="home"]');
     const regDone = await card(page, "reg");
-    ok(regDone.status === "needs" && regDone.badge === "NEEDS WORK" && regDone.missed === "3" && regDone.answered === "68", "finishing Registration with 3 misses becomes NEEDS WORK");
+    ok(regDone.status === "needs" && regDone.badge === "NEEDS WORK" && regDone.missed === "7" && regDone.answered === "68" && regDone.score === "89.7%", "finishing Registration at 61/68 is below 90% and becomes NEEDS WORK");
     ok((await card(page, "wim")).status === "pass", "finishing Registration leaves the WIM/bypass pass in place");
 
     await page.evaluate(() => localStorage.clear());
@@ -653,7 +703,7 @@ async function main() {
     await page.reload({ waitUntil: "load" });
     await page.waitForSelector("#dash");
     const sizeLegacy = await card(page, "size");
-    ok(sizeLegacy.status === "needs" && sizeLegacy.badge === "NEEDS WORK" && sizeLegacy.missed === "3", "a finished saved Size quiz with 3 misses migrates as NEEDS WORK");
+    ok(sizeLegacy.status === "pass" && sizeLegacy.badge === "PASS" && sizeLegacy.missed === "3" && sizeLegacy.answered === "67" && sizeLegacy.correct === "64" && sizeLegacy.score === "95.5%", "a finished Size quiz with 3 misses is regraded as PASS and the answers stay");
     ok((await card(page, "wt")).status === "new", "that Size migration does not fill Weight");
 
     await page.evaluate(() => localStorage.clear());
@@ -722,7 +772,7 @@ async function main() {
       const answers = {};
       const misses = { wt: 0, size: 0, haz: 0 };
       items.forEach(it => {
-        const limit = it.sec === "haz" ? 3 : it.sec === "wt" ? 2 : 0;
+        const limit = it.sec === "haz" ? 5 : it.sec === "wt" ? 2 : 0;
         const wrong = (misses[it.sec] || 0) < limit;
         if (wrong) misses[it.sec] = (misses[it.sec] || 0) + 1;
         const pick = wrong ? it.opts.find((_, k) => k !== it.ans) : it.opts[it.ans];
@@ -739,7 +789,7 @@ async function main() {
     const wtRow = await page.$eval('[data-mixed-section="wt"]', el => ({ status: el.dataset.status, text: el.textContent }));
     const sizeRow = await page.$eval('[data-mixed-section="size"]', el => el.dataset.status);
     ok(fullMixed.len === "377" && fullMixed.pos === "100" && fullMixed.badge === "NEEDS WORK", "a finished 377-question save keeps its place and is not given one overall PASS");
-    ok(hazRow.status === "needs" && hazRow.text.includes("NEEDS WORK"), "HazMat with 3 misses in the old mixed quiz needs work");
+    ok(hazRow.status === "needs" && hazRow.text.includes("NEEDS WORK"), "HazMat at 36/41 in the old mixed quiz is below 90%");
     ok(wtRow.status === "pass" && wtRow.text.includes("PASS"), "Weight with 2 misses in the old mixed quiz passes that section");
     ok(sizeRow === "pass", "a perfect Size section inside the finished mixed quiz passes");
     const hazOwn = await card(page, "haz");
@@ -838,34 +888,34 @@ async function main() {
     ok(page.__errors.length === 0, "no script errors during the quiz: " + page.__errors.join(" | "));
 
     const keysBeforeUpdate = await page.evaluate(async () => await caches.keys());
-    ok(keysBeforeUpdate.includes("poe-quiz-v24"), "normal load installs the v24 cache: " + keysBeforeUpdate.join(","));
+    ok(keysBeforeUpdate.includes("poe-quiz-v25"), "normal load installs the v25 cache: " + keysBeforeUpdate.join(","));
   } finally {
     await browser.close();
   }
 
   const browser2 = await launch();
   try {
-    server.setSw(STUB_V23);
+    server.setSw(STUB_V24);
     const page = await newPage(browser2);
     await page.goto(server.base, { waitUntil: "load" });
     await page.waitForSelector("#dash");
-    const firstKeys = await waitKeys(page, keys => keys.includes("poe-quiz-v23"), 15000);
-    ok(firstKeys.includes("poe-quiz-v23"), "first worker cache is the live v23: " + firstKeys.join(","));
+    const firstKeys = await waitKeys(page, keys => keys.includes("poe-quiz-v24"), 15000);
+    ok(firstKeys.includes("poe-quiz-v24"), "first worker cache is the live v24: " + firstKeys.join(","));
     server.setSw(null);
     await page.reload({ waitUntil: "load" });
-    const nextKeys = await waitKeys(page, keys => keys.length === 1 && keys[0] === "poe-quiz-v24", 15000);
-    ok(nextKeys.length === 1 && nextKeys[0] === "poe-quiz-v24", "updating the worker drops v23 and keeps v24: " + nextKeys.join(","));
+    const nextKeys = await waitKeys(page, keys => keys.length === 1 && keys[0] === "poe-quiz-v25", 15000);
+    ok(nextKeys.length === 1 && nextKeys[0] === "poe-quiz-v25", "updating the worker drops v24 and keeps v25: " + nextKeys.join(","));
     const cached = await page.evaluate(async () => {
       const keys = await caches.keys();
       const named = keys[0] ? await caches.open(keys[0]) : null;
       const hit = named ? await named.match("./index.html") : null;
       const text = hit ? await hit.text() : "";
-      const marker = named ? await named.match("marker-v23") : null;
-      return { hasApp: text.includes("Section quizzes") && text.includes("v24"), marker: !!marker, len: text.length };
+      const marker = named ? await named.match("marker-v24") : null;
+      return { hasApp: text.includes("Section quizzes") && text.includes("v25"), marker: !!marker, len: text.length };
     });
-    ok(cached.hasApp && cached.marker === false, "v24 cache holds the section quiz and the v23 marker is gone (" + JSON.stringify(cached) + ")");
+    ok(cached.hasApp && cached.marker === false, "v25 cache holds the section quiz and the v24 marker is gone (" + JSON.stringify(cached) + ")");
     const sub = await page.$eval("header .sub", el => el.textContent);
-    ok(sub.includes("v24"), "updated page shows v24");
+    ok(sub.includes("v25"), "updated page shows v25");
     await page.setOfflineMode(true);
     await page.reload({ waitUntil: "load" });
     await page.waitForSelector("#dash");
@@ -874,7 +924,7 @@ async function main() {
       n: POE.ITEMS.length,
       sub: document.querySelector("header .sub").textContent
     }));
-    ok(offline.heading === "Section quizzes" && offline.n === 377 && offline.sub.includes("v24"), "offline reload serves the updated quiz and all 377 questions");
+    ok(offline.heading === "Section quizzes" && offline.n === 377 && offline.sub.includes("v25"), "offline reload serves the updated quiz and all 377 questions");
     await page.click('[data-action="start"][data-section="wt"]');
     await page.waitForSelector("h3");
     const offlineQ = await page.$eval("h3", el => el.textContent);

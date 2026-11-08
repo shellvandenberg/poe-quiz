@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1d3b6a"><meta name="apple-mobile-web-app-capable" content="yes"><title>POE Inspector Practice Quiz</title><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-192.png"><style>
 *{box-sizing:border-box}body{font-family:system-ui,sans-serif;margin:0;background:#f4f5f7;color:#1a1a1a}header{background:#1d3b6a;color:#fff;padding:14px 16px}header h1{margin:0;font-size:1.2rem}header .sub{margin:4px 0 0;font-size:.85rem;opacity:.9}main{max-width:760px;margin:auto;padding:10px}section{background:#fff;border-radius:12px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0002}h2{margin:0 0 10px;font-size:1.05rem}h3{font-size:1.05rem}label{display:block;margin:8px 0}select{width:100%;padding:10px;font-size:1rem}.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}button{padding:11px 14px;font-size:1rem;border-radius:8px;border:1px solid #bbb;background:#fff;color:inherit}button.pri{background:#1d3b6a;color:#fff;border-color:#1d3b6a}button:disabled{opacity:.6}.opt{display:block;width:100%;text-align:left;margin:6px 0}.opt.ok{background:#d9f2df;border-color:#2e8b47;opacity:1}.opt.bad{background:#fbdcdc;border-color:#c0392b;opacity:1}.co{border-radius:8px;padding:10px;margin-top:10px}.co p{margin:4px 0}.info{background:#e3eefc}.warn{background:#fff1d6}.good{background:#dff3e4}.cite{font-size:.85rem;color:#555}.meta{font-size:.85rem;color:#555}table{width:100%;border-collapse:collapse;font-size:.92rem}td,th{padding:6px;border-bottom:1px solid #eee;text-align:left}.pass{color:#2e8b47;font-weight:700}.fail{color:#c0392b;font-weight:700}.endrow{display:flex;justify-content:flex-end;min-height:0}.endbtn{font-size:.8rem;padding:5px 10px;border:1px solid #c0392b;color:#c0392b;background:#c0392b14;font-weight:600}.danger{background:#fbdcdc;border:1px solid #c0392b}.dangerbtn{background:#c0392b;color:#fff;border-color:#c0392b}.miss{border-top:1px solid #eee;padding:8px 0}article.card{background:#fff;border-radius:12px;padding:12px;margin:10px 0;box-shadow:0 1px 3px #0002;border:2px solid transparent}article.card h3{margin:0;font-size:1.02rem}article.card p{margin:4px 0}.cardhead{display:flex;justify-content:space-between;align-items:center;gap:8px}.hint{font-weight:500;color:#555;font-size:.8rem}.badge{font-size:.72rem;font-weight:700;letter-spacing:.02em;padding:3px 8px;border-radius:99px;white-space:nowrap}.badge.pass{background:#dff3e4;color:#1e7a38}.badge.fail{background:#fbdcdc;color:#a3261c}.badge.prog{background:#fff1d6;color:#8a5a00}.badge.new{background:#e8ecf1;color:#555}.card.needs{border-color:#c0392b;background:#fff7f7}.card.watch{border-color:#c9a227;background:#fffaf0}.card.pass{border-color:#2e8b47}.bar{height:8px;background:#e6e8ec;border-radius:99px;overflow:hidden;margin:8px 0}.bar>span{display:block;height:100%;background:#1d3b6a}.card.needs .bar>span{background:#c0392b}.card.watch .bar>span{background:#b8860b}.card.pass .bar>span{background:#2e8b47}.foot{margin:6px 2px 18px}@media(prefers-color-scheme:dark){body{background:#111;color:#eee}section,button,article.card{background:#1e1e1e;color:#eee}.info{background:#1b2a40}.warn{background:#3a2e12}.good{background:#163322}.opt.ok{background:#163322}.opt.bad,.danger{background:#3d1a1a}.cite,.meta,.hint{color:#aaa}td,th{border-color:#333}.badge.new{background:#2a2a2a;color:#ccc}.badge.prog{background:#3a2e12;color:#f0d48a}.badge.pass{background:#163322;color:#8dcea0}.badge.fail{background:#3d1a1a;color:#f0a8a2}.card.needs{background:#2a1515;border-color:#c0392b}.card.watch{background:#2a2414;border-color:#c9a227}.card.pass{border-color:#2e8b47}.bar{background:#333}button.pri{color:#fff}}
-</style></head><body><header><h1>POE Inspector Practice Quiz</h1><p class="sub">Idaho practice by section · v24</p></header><main id="app"></main><script>const SECTIONS = [
+</style></head><body><header><h1>POE Inspector Practice Quiz</h1><p class="sub">Idaho practice by section · v25</p></header><main id="app"></main><script>const SECTIONS = [
   { id: "wt", name: "Weight" },
   { id: "size", name: "Size" },
   { id: "haz", name: "HazMat" },
@@ -420,7 +420,17 @@ const ITEMS = BANK.map((b, i) => {
 const KEY_V1 = "poe-quiz-progress-v1";
 const KEY_V1_ARCH = "poe-quiz-progress-v1-archived";
 const KEY = "poe-quiz-progress-v2";
-const PASS_MAX = 2;
+function passes(correct, total) { return total > 0 && correct * 10 >= total * 9; }
+function scorePct(correct, total) {
+  if (!total) return "0.0%";
+  const tenths = Math.floor((correct * 1000) / total);
+  return Math.floor(tenths / 10) + "." + (tenths % 10) + "%";
+}
+function shortOfPass(correct, answered, total) {
+  const remaining = Math.max(0, total - answered);
+  return total > 0 && (correct + remaining) * 10 < total * 9;
+}
+const PASS_NOTE = "PASS = at least 90% correct on a finished full section. NEEDS WORK = below 90%. An unfinished or partial section stays In progress. Practice threshold, not an official score.";
 const QID = it => it.sec + ":" + hash(NRM(it.q)).toString(36);
 const QID_ALIAS = { "wt:11lfube": "wt:7wlt1b" };
 const BY = {};
@@ -663,10 +673,12 @@ function gradeSection(id) {
   let status, label;
   if (!deck.length) { status = "new"; label = "Not started"; }
   else if (!complete) { status = "progress"; label = "In progress"; }
-  else if (t.missed <= PASS_MAX) { status = "pass"; label = "PASS"; }
+  else if (passes(t.correct, deck.length)) { status = "pass"; label = "PASS"; }
   else { status = "needs"; label = "NEEDS WORK"; }
   const pos = deck.length ? Math.max(0, Math.min(sess.pos || 0, deck.length - 1)) : 0;
-  return Object.assign({ deck, total: itemsIn(id).length, status, label, pos }, t);
+  const reach = !complete && coversAll(deck, id) && shortOfPass(t.correct, t.answered, deck.length);
+  const score = t.answered ? scorePct(t.correct, complete ? deck.length : t.answered) : "";
+  return Object.assign({ deck, total: itemsIn(id).length, status, label, pos, outOfReach: reach, score }, t);
 }
 function gradeMixed() {
   const sess = P.mixed;
@@ -690,9 +702,11 @@ function mixedRows() {
     const complete = !!(P.mixed.finished && t.answered === sub.length && coversAll(sub, s.id));
     let status, label;
     if (!complete) { status = "progress"; label = "In progress"; }
-    else if (t.missed <= PASS_MAX) { status = "pass"; label = "PASS"; }
+    else if (passes(t.correct, sub.length)) { status = "pass"; label = "PASS"; }
     else { status = "needs"; label = "NEEDS WORK"; }
-    rows.push(Object.assign({ s, n: sub.length, status, label }, t));
+    const reach = !complete && coversAll(sub, s.id) && shortOfPass(t.correct, t.answered, sub.length);
+    const score = t.answered ? scorePct(t.correct, complete ? sub.length : t.answered) : "";
+    rows.push(Object.assign({ s, n: sub.length, status, label, outOfReach: reach, score }, t));
   });
   return rows;
 }
@@ -758,7 +772,7 @@ function priorRow(id) {
 function cardClass(g, s) {
   if (g.status === "needs") return "needs";
   if (g.status === "pass") return "pass";
-  if (g.status === "progress" && g.missed >= 3) return "watch";
+  if (g.status === "progress" && g.outOfReach) return "watch";
   const prior = s && priorRow(s.id);
   if (g.status === "new" && prior && prior.status === "needs") return "needs";
   return "";
@@ -772,8 +786,9 @@ function badgeClass(status) {
 function sectionCard(s, g) {
   const denom = g.deck.length || g.total;
   const pct = denom ? Math.round(g.answered / denom * 100) : 0;
+  const scoreBit = g.score ? (g.status === "progress" ? ` · ${g.score} so far` : ` · ${g.score}`) : "";
   const stats = g.deck.length
-    ? `Answered ${g.answered}/${g.deck.length} · Correct ${g.correct} · Missed ${g.missed}`
+    ? `Answered ${g.answered}/${g.deck.length} · Correct ${g.correct} · Missed ${g.missed}${scoreBit}`
     : `${g.total} questions · not started`;
   let place = "";
   if (g.deck.length && g.status === "progress") place = `<div class="meta">Saved place: question ${g.pos + 1} of ${g.deck.length}</div>`;
@@ -796,13 +811,13 @@ function sectionCard(s, g) {
   const hint = s.hint ? ` <span class="hint">${esc(s.hint)}</span>` : "";
   const priorStatus = priorRow(s.id);
   const priorAttr = priorStatus ? ` data-prior="${priorStatus.status}"` : "";
-  return `<article class="card ${cardClass(g, s)}" data-section="${s.id}" data-status="${g.status}" data-missed="${g.missed}" data-correct="${g.correct}" data-answered="${g.answered}" data-pos="${g.pos}" data-len="${g.deck.length}"${priorAttr}><div class="cardhead"><h3>${esc(s.name)}${hint}</h3><span class="badge ${badgeClass(g.status)}">${esc(g.label)}</span></div><p class="meta">${g.total} questions</p><p>${stats}</p>${place}${prior}<div class="bar" aria-hidden="true"><span style="width:${pct}%"></span></div>${actions}</article>`;
+  return `<article class="card ${cardClass(g, s)}" data-section="${s.id}" data-status="${g.status}" data-missed="${g.missed}" data-correct="${g.correct}" data-answered="${g.answered}" data-score="${g.score || ""}" data-pos="${g.pos}" data-len="${g.deck.length}"${priorAttr}><div class="cardhead"><h3>${esc(s.name)}${hint}</h3><span class="badge ${badgeClass(g.status)}">${esc(g.label)}</span></div><p class="meta">${g.total} questions</p><p>${stats}</p>${place}${prior}<div class="bar" aria-hidden="true"><span style="width:${pct}%"></span></div>${actions}</article>`;
 }
 function mixedCard() {
   const g = gradeMixed();
   const rows = mixedRows();
   const needs = rows.filter(r => r.status === "needs");
-  const cls = needs.length ? "needs" : (g.status === "progress" && g.missed >= 3 ? "watch" : "");
+  const cls = needs.length ? "needs" : (rows.some(r => r.outOfReach) ? "watch" : "");
   let body = `<p class="meta">Secondary. One quiz across every section, or a single section, in the earlier mixed format. It does not reset the section quizzes.</p>`;
   if (ui.confirmRestart === "mixed") {
     body += `<div class="co warn" data-confirm="restart" data-section="mixed"><b>Restart the mixed quiz only?</b><p>This erases the mixed quiz's answers and saved place. Section quizzes stay as they are.</p><div class="row">${btn("restart-yes", "mixed", "Yes, restart mixed quiz", "pri")}${btn("restart-no", "", "Cancel", "")}</div></div>`;
@@ -811,15 +826,15 @@ function mixedCard() {
       .concat(SECTIONS.map(s => `<option value="${s.id}" ${P.mixed.filter === s.id ? "selected" : ""}>${esc(s.name)} (${itemsIn(s.id).length})</option>`)).join("");
     body += `<label>Section <select id="mix-filter">${opts}</select></label><label class="tg"><input type="checkbox" id="mix-shuffle" ${P.mixed.shuffle !== false ? "checked" : ""}> Shuffle question order</label><div class="row">${btn("start", "mixed", "Start mixed quiz", "pri")}</div>`;
   } else {
-    body += `<p>Answered ${g.answered}/${g.deck.length} · Correct ${g.correct} · Missed ${g.missed}</p>`;
+    body += `<p>Answered ${g.answered}/${g.deck.length} · Correct ${g.correct} · Missed ${g.missed}${g.answered ? " · " + scorePct(g.correct, g.answered) + (g.status === "progress" ? " so far" : "") : ""}</p>`;
     if (g.status === "progress") body += `<div class="meta">Saved place: question ${g.pos + 1} of ${g.deck.length}</div>`;
     if (rows.length) {
       body += `<table><tr><th>Section</th><th>Correct</th><th>Missed</th><th>Result</th></tr>`;
       rows.forEach(r => {
         const mark = r.status === "pass" ? "pass" : r.status === "needs" ? "fail" : "";
-        body += `<tr data-mixed-section="${r.s.id}" data-status="${r.status}"><td>${esc(r.s.name)}</td><td>${r.correct}/${r.answered}</td><td>${r.missed}</td><td class="${mark}">${esc(r.label)}</td></tr>`;
+        body += `<tr data-mixed-section="${r.s.id}" data-status="${r.status}"><td>${esc(r.s.name)}</td><td>${r.correct}/${r.answered}${r.score ? " · " + r.score : ""}</td><td>${r.missed}</td><td class="${mark}">${esc(r.label)}</td></tr>`;
       });
-      body += `</table><p class="meta">A section inside the mixed quiz is graded only when every question from that section was in the quiz and all of them are answered. Otherwise it stays In progress.</p>`;
+      body += `</table><p class="meta">A section inside the mixed quiz is graded only when every question from that section was in the quiz and all of them are answered. PASS is at least 90% correct. Otherwise it stays In progress.</p>`;
     }
     const openLabel = (g.status === "progress" ? "Resume at question " : "Open question ") + (g.pos + 1);
     body += `<div class="row">${btn("resume", "mixed", openLabel, g.status === "progress" ? "pri" : "")}${g.missed ? btn("review", "mixed", "Review missed (" + g.missed + ")", g.status === "progress" ? "" : "pri") : (g.status === "done" ? btn("review", "mixed", "See result", "pri") : "")}${btn("restart", "mixed", "Restart", "")}</div>`;
@@ -832,21 +847,21 @@ function mixedCard() {
 function renderHome() {
   const grades = SECTIONS.map(s => ({ s, g: gradeSection(s.id) }));
   const needs = grades.filter(x => x.g.status === "needs");
-  const watch = grades.filter(x => x.g.status === "progress" && x.g.missed >= 3);
+  const watch = grades.filter(x => x.g.outOfReach);
   const priorNeeds = grades.filter(x => x.g.status !== "needs" && priorRow(x.s.id) && priorRow(x.s.id).status === "needs");
   let h = "";
   if (P.legacy && !P.legacy.dismissed && P.legacy.detail) {
     h += `<section class="co info" data-legacy-banner><b>Earlier progress kept</b><p>${esc(P.legacy.detail)}</p><p class="meta">The original save stays on this device. Restarting a section does not delete it.</p><div class="row">${btn("dismiss-legacy", "", "Hide this note", "")}</div></section>`;
   }
-  h += `<section id="dash"><h2>Section quizzes</h2><p class="meta">Each section is its own quiz. It saves every answer and the exact question you are on. A finished section with 0–2 missed is <b>PASS</b>. 3 or more missed is <b>NEEDS WORK</b>. That line is a practice threshold, not an official score. An unfinished section stays <b>In progress</b> and is not passed.</p>`;
+  h += `<section id="dash"><h2>Section quizzes</h2><p class="meta">Each section is its own quiz. It saves every answer and the exact question you are on. A finished section at 90% or higher is <b>PASS</b>. Below 90% is <b>NEEDS WORK</b>. That line is a practice threshold, not an official score. An unfinished section stays <b>In progress</b> and is not passed.</p>`;
   if (needs.length || watch.length || priorNeeds.length) {
     const bits = [];
-    if (needs.length) bits.push(`<b>Needs attention:</b> ${needs.map(x => esc(x.s.name) + " (" + x.g.missed + " missed)").join(", ")}`);
-    if (priorNeeds.length) bits.push(`<b>Mixed quiz needs attention:</b> ${priorNeeds.map(x => { const r = priorRow(x.s.id); return esc(x.s.name) + " (" + r.missed + " missed)"; }).join(", ")}. That grade is on the mixed quiz, not a new section attempt.`);
-    if (watch.length) bits.push(`<b>In progress, 3 or more missed so far:</b> ${watch.map(x => esc(x.s.name) + " (" + x.g.missed + " missed)").join(", ")}. Not graded yet.`);
+    if (needs.length) bits.push(`<b>Needs attention:</b> ${needs.map(x => esc(x.s.name) + " (" + x.g.correct + "/" + x.g.deck.length + ", " + x.g.score + ")").join(", ")}`);
+    if (priorNeeds.length) bits.push(`<b>Mixed quiz needs attention:</b> ${priorNeeds.map(x => { const r = priorRow(x.s.id); return esc(x.s.name) + " (" + r.correct + "/" + r.n + ", " + r.score + ")"; }).join(", ")}. That grade is on the mixed quiz, not a new section attempt.`);
+    if (watch.length) bits.push(`<b>In progress and already short of 90%:</b> ${watch.map(x => esc(x.s.name) + " (" + x.g.missed + " missed)").join(", ")}. Even if the remaining answers are correct, the section cannot reach 90%. Not graded yet.`);
     h += `<div class="co warn" data-attention="${needs.length || priorNeeds.length ? "needs" : "watch"}">${bits.join("<br>")}</div>`;
   } else {
-    h += `<div class="co good" data-attention="clear"><b>No finished section needs work.</b><p>Finish a section to grade it. Three or more missed will be highlighted here.</p></div>`;
+    h += `<div class="co good" data-attention="clear"><b>No finished section needs work.</b><p>Finish a section to grade it. A finished score below 90% is highlighted here.</p></div>`;
   }
   grades.forEach(x => { h += sectionCard(x.s, x.g); });
   h += `</section>`;
@@ -875,7 +890,7 @@ function renderQuiz() {
     h += `<div class="co danger" data-confirm="end"><b>End test now? Your progress is saved.</b>${incomplete ? `<p>This quiz stays <b>In progress</b> until every question is answered. It is not graded and will not show PASS.</p>` : ""}<div class="row">${btn("end-yes", active, "Yes, end test", "dangerbtn")}${btn("end-stay", "", "Keep going", "pri")}</div></div>`;
   }
   if (ui.note) h += `<div class="co warn" data-note>${esc(ui.note)}</div>`;
-  h += `<div class="meta" data-pos="${sess.pos}" data-len="${deck.length}" data-active="${active}">Question ${sess.pos + 1} of ${deck.length} · ${esc(active === "mixed" ? secName(cur.sec) : title)} · ${g.answered} answered · ${g.correct} correct · ${g.missed} missed</div>`;
+  h += `<div class="meta" data-pos="${sess.pos}" data-len="${deck.length}" data-active="${active}">Question ${sess.pos + 1} of ${deck.length} · ${esc(active === "mixed" ? secName(cur.sec) : title)} · ${g.answered} answered · ${g.correct} correct · ${g.missed} missed${g.score ? " · " + g.score + (g.status === "progress" ? " so far" : "") : ""}</div>`;
   h += `<h3 data-qid="${QID(cur)}">${esc(cur.q)}</h3>`;
   h += cur.opts.map((o, i) => {
     let c = "opt";
@@ -884,7 +899,7 @@ function renderQuiz() {
   }).join("");
   if (picked >= 0) h += `<div class="co ${picked === cur.ans ? "good" : "warn"}"><b>${picked === cur.ans ? "Correct" : "Incorrect — answer: " + "ABCD"[cur.ans]}</b><p>${esc(cur.expl)}</p><p class="cite">${esc(cur.cite)}</p></div>`;
   h += `<div class="row">${btn("prev", "", "Previous", "")}${sess.pos < deck.length - 1 ? btn("next", "", "Next", "pri") : btn("finish", "", "Finish", "pri")}${btn("home", "", "Sections", "")}</div></section>`;
-  if (g.status === "pass" || g.status === "needs") h += `<section class="co ${g.status === "pass" ? "good" : "warn"}" data-grade="${g.status}"><b>${esc(title)}: ${g.label}</b><p>Correct ${g.correct} · Missed ${g.missed} · ${g.answered}/${g.deck.length} answered.</p><p class="meta">PASS = 0–2 missed. NEEDS WORK = 3 or more missed. Practice threshold, not an official score.</p></section>`;
+  if (g.status === "pass" || g.status === "needs") h += `<section class="co ${g.status === "pass" ? "good" : "warn"}" data-grade="${g.status}"><b>${esc(title)}: ${g.label}</b><p>Correct ${g.correct}/${g.deck.length} · Missed ${g.missed} · ${g.score}.</p><p class="meta">${PASS_NOTE}</p></section>`;
   if (active === "mixed" && g.status === "done") h += mixedScoreTable();
   return h;
 }
@@ -893,9 +908,9 @@ function mixedScoreTable() {
   let h = `<section data-grade="mixed"><h2>Mixed quiz scores</h2><table><tr><th>Section</th><th>Correct</th><th>Missed</th><th>Result</th></tr>`;
   rows.forEach(r => {
     const mark = r.status === "pass" ? "pass" : r.status === "needs" ? "fail" : "";
-    h += `<tr data-mixed-section="${r.s.id}" data-status="${r.status}"><td>${esc(r.s.name)}</td><td>${r.correct}/${r.answered}</td><td>${r.missed}</td><td class="${mark}">${esc(r.label)}</td></tr>`;
+    h += `<tr data-mixed-section="${r.s.id}" data-status="${r.status}"><td>${esc(r.s.name)}</td><td>${r.correct}/${r.answered}${r.score ? " · " + r.score : ""}</td><td>${r.missed}</td><td class="${mark}">${esc(r.label)}</td></tr>`;
   });
-  h += `</table><p class="meta">PASS = 0–2 missed on a finished full section. NEEDS WORK = 3 or more missed. A partial section stays In progress.</p></section>`;
+  h += `</table><p class="meta">${PASS_NOTE}</p></section>`;
   return h;
 }
 function renderReview() {
@@ -906,9 +921,9 @@ function renderReview() {
   let h = `<section data-review-for="${active}"><h2>${g.missed ? "Missed questions" : "Result"} — ${esc(title)}</h2>`;
   if (active === "mixed" && g.status === "done") {
     const needs = mixedRows().filter(r => r.status === "needs");
-    h += `<div class="co ${needs.length ? "warn" : "good"}" data-grade="${needs.length ? "needs" : "done"}"><b>Finished</b><p>Correct ${g.correct} · Missed ${g.missed} · ${g.answered}/${g.deck.length} answered.</p><p class="meta">Each full section is graded on its own. PASS = 0–2 missed. NEEDS WORK = 3 or more missed. A partial section stays In progress. The mixed quiz itself is not given a single PASS.</p></div>`;
-  } else if (graded) h += `<div class="co ${g.status === "pass" ? "good" : "warn"}" data-grade="${g.status}"><b>${g.label}</b><p>Correct ${g.correct} · Missed ${g.missed} · ${g.answered}/${g.deck.length} answered.</p><p class="meta">PASS = 0–2 missed. NEEDS WORK = 3 or more missed. Practice threshold, not an official score.</p></div>`;
-  else h += `<div class="co warn" data-grade="progress"><b>In progress</b><p>Correct ${g.correct} · Missed ${g.missed} · ${g.answered}/${g.deck.length || g.total || 0} answered. This quiz is not graded and is not a pass.</p></div>`;
+    h += `<div class="co ${needs.length ? "warn" : "good"}" data-grade="${needs.length ? "needs" : "done"}"><b>Finished</b><p>Correct ${g.correct} · Missed ${g.missed} · ${g.answered}/${g.deck.length} answered${g.answered ? " · " + scorePct(g.correct, g.answered) : ""}.</p><p class="meta">Each full section is graded on its own. ${PASS_NOTE} The mixed quiz itself is not given a single PASS.</p></div>`;
+  } else if (graded) h += `<div class="co ${g.status === "pass" ? "good" : "warn"}" data-grade="${g.status}"><b>${g.label}</b><p>Correct ${g.correct}/${g.deck.length} · Missed ${g.missed} · ${g.score}.</p><p class="meta">${PASS_NOTE}</p></div>`;
+  else h += `<div class="co warn" data-grade="progress"><b>In progress</b><p>Correct ${g.correct} · Missed ${g.missed} · ${g.answered}/${g.deck.length || g.total || 0} answered${g.score ? " · " + g.score + " so far" : ""}. This quiz is not graded and is not a pass. Pass requires every question and at least 90% correct.</p></div>`;
   h += `<div class="row">${btn("home", "", "Back to sections", "pri")}${g.deck.length && g.status === "progress" ? btn("resume", active, "Resume", "") : ""}${g.deck.length ? btn("restart", active, "Restart", "") : ""}</div>`;
   if (!g.missedItems.length) h += `<p>No missed questions in this saved quiz.</p>`;
   g.missedItems.forEach(({ it, chosen }) => {
@@ -1020,7 +1035,7 @@ load();
 render();
 document.getElementById("app").addEventListener("click", onClick);
 document.getElementById("app").addEventListener("change", onChange);
-window.POE = { QID, ITEMS, SECTIONS, KEY, KEY_V1, KEY_V1_ARCH, PASS_MAX, gradeSection, gradeMixed, migrateV1, state: () => P };
+window.POE = { QID, ITEMS, SECTIONS, KEY, KEY_V1, KEY_V1_ARCH, passes, scorePct, gradeSection, gradeMixed, migrateV1, state: () => P };
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   let hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
