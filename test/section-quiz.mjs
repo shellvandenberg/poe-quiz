@@ -82,8 +82,8 @@ function startServer() {
   });
 }
 
-const STUB_V22 = `const C="poe-quiz-v22",F=["./","./index.html","./POE_Quiz_singlefile.html","./manifest.json","./icon.svg","./icon-192.png","./icon-512.png"];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(async c=>{await c.addAll(F); await c.put("marker-v22", new Response("old-cache"));}));self.skipWaiting()});
+const STUB_V23 = `const C="poe-quiz-v23",F=["./","./index.html","./POE_Quiz_singlefile.html","./manifest.json","./icon.svg","./icon-192.png","./icon-512.png"];
+self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(async c=>{await c.addAll(F); await c.put("marker-v23", new Response("old-cache"));}));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});
 self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request)))});
 `;
@@ -140,7 +140,9 @@ function checkBank() {
   const bank = eval(html.slice(start + "const BANK = ".length, end + 1));
   const hash = crypto.createHash("sha256").update(JSON.stringify(bank)).digest("hex");
   ok(bank.length === 377, "bank has 377 questions");
-  ok(hash === "462c9976f07e1eb480860073f87e432def54b8eca86a9da3552010839982fd53", "remaining question wording, answers, and citations match");
+  ok(hash === "072b0f7c48848909c15e81c83b25c29f8b9e456b5f0a178ac94413dca7c3cab7", "remaining question wording, answers, and citations match");
+  const eboi = bank.find(b => b[1].includes("EBOI eastbound"));
+  ok(eboi && eboi[1] === "A driver crosses the EBOI eastbound scale with a 10-axle combination that weighs 119,260 lbs. The truck is registered for 120,000 lbs and does not have a permit. Which code section would you use to cite operating without the required permit, and what permit does the combination need?" && eboi[2] === "I.C. 49-1004; an EL/EW permit up to 129,000 lbs" && eboi[3].join("|") === "I.C. 49-1010(3); a reducible oversize permit|I.C. 49-1001(3); an EL/EW permit|I.C. 49-1004(3); a 192,000 lbs permit" && eboi[4] === "Worksheet #23." && eboi[5] === "I.C. 49-1004(1); ITD POE Weight Worksheet p.8", "worksheet 23 stem has the scale context and the same answer");
   const arrows = bank.find(b => b[1].startsWith("As a general rule, combination packages"));
   ok(arrows && arrows[2] === "ORIENTATION ARROWS POINTING UP" && arrows[3].join("|") === "THIS END DOWN|KEEP UPRIGHT|DANGER" && arrows[4] === "Package orientation markings." && arrows[5] === "49 CFR 172.312(a); ITD POE Hazmat & Placards Worksheet p.2", "only the orientation-arrow choice is uppercased");
   const agency = bank.find(b => b[1] === "Which agency should you contact about hazmat out-of-service criteria?");
@@ -162,7 +164,7 @@ function checkBank() {
   ok(bank.some(b => b[1].includes("where must a driver keep the hazmat shipping papers")), "the other shipping-paper question stays");
   ok(!/\bD3\b/.test(html), "no D3 name added");
   ok(html.includes("district supervisor"), "existing district wording kept");
-  ok(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8").includes('const C="poe-quiz-v23"'), "service worker cache is v23");
+  ok(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8").includes('const C="poe-quiz-v24"'), "service worker cache is v24");
   const counts = {};
   bank.forEach(b => { counts[b[0]] = (counts[b[0]] || 0) + 1; });
   ok(counts.wt === 71 && counts.size === 67 && counts.haz === 41 && counts.sec === 30 && counts.eqp === 35 && counts.rov === 34 && counts.wim === 31 && counts.reg === 68, "HazMat is 41 and every other section count is unchanged");
@@ -362,6 +364,57 @@ async function main() {
       marked: [...document.querySelectorAll(".opt.ok")].map(el => el.textContent)
     }));
     ok(agencyView.q === "Which agency should you contact about hazmat out-of-service criteria?" && agencyView.marked.some(t => t.includes("IDAHO STATE POLICE")) && !agencyView.marked.some(t => t.includes("Idaho State Police")), "the saved agency answer shows the uppercase choice as correct");
+    await page.evaluate(() => localStorage.clear());
+
+    await page.evaluate(oldId => {
+      localStorage.clear();
+      const wt = POE.ITEMS.filter(it => it.sec === "wt");
+      const target = wt.find(it => it.q.includes("EBOI eastbound"));
+      const idx = wt.indexOf(target);
+      const deck = wt.map(POE.QID);
+      deck[idx] = oldId;
+      const answers = {};
+      answers[oldId] = "I.C. 49-1004; an EL/EW permit up to 129,000 lbs";
+      wt.slice(0, 2).forEach(it => { if (it !== target) answers[POE.QID(it)] = it.opts[it.ans]; });
+      const sections = {};
+      POE.SECTIONS.forEach(s => { sections[s.id] = { shuffle: false, deck: [], pos: 0, answers: {}, finished: false }; });
+      sections.wt = { shuffle: false, deck, pos: idx, answers, finished: false };
+      const size = POE.ITEMS.filter(it => it.sec === "size");
+      const sizeAnswers = {};
+      size.slice(0, 2).forEach(it => { sizeAnswers[POE.QID(it)] = it.opts[it.ans]; });
+      sections.size = { shuffle: false, deck: size.map(POE.QID), pos: 3, answers: sizeAnswers, finished: false };
+      localStorage.setItem(POE.KEY, JSON.stringify({ v: 2, sections, mixed: { shuffle: true, filter: "all", deck: [], pos: 0, answers: {}, finished: false }, legacy: null }));
+    }, "wt:11lfube");
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const moved = await page.evaluate(oldId => {
+      const it = POE.ITEMS.find(item => item.q.includes("EBOI eastbound"));
+      const id = POE.QID(it);
+      const sess = POE.state().sections.wt;
+      const g = POE.gradeSection("wt");
+      return {
+        q: it.q,
+        ans: it.opts[it.ans],
+        cite: it.cite,
+        inDeck: sess.deck.includes(id),
+        oldInDeck: sess.deck.includes(oldId),
+        saved: sess.answers[id],
+        pos: sess.pos,
+        correct: g.correct,
+        sizePos: POE.state().sections.size.pos,
+        sizeAnswered: Object.keys(POE.state().sections.size.answers).length
+      };
+    }, "wt:11lfube");
+    ok(moved.q.includes("operating without the required permit") && moved.q.includes("EBOI eastbound scale") && moved.ans === "I.C. 49-1004; an EL/EW permit up to 129,000 lbs" && moved.cite === "I.C. 49-1004(1); ITD POE Weight Worksheet p.8", "the rewritten question keeps the permit answer and citation");
+    ok(moved.inDeck && !moved.oldInDeck && moved.saved === moved.ans && moved.pos > 0 && moved.correct >= 1, "a save under the old question wording still counts on the new stem (" + JSON.stringify(moved) + ")");
+    ok(moved.sizePos === 3 && moved.sizeAnswered === 2, "the stem migration leaves Size progress in place");
+    await page.click('[data-action="resume"][data-section="wt"]');
+    await page.waitForSelector("h3");
+    const eboiView = await page.evaluate(() => ({
+      q: document.querySelector("h3").textContent,
+      marked: [...document.querySelectorAll(".opt.ok")].map(el => el.textContent).join(" ")
+    }));
+    ok(eboiView.q.includes("EBOI eastbound scale") && eboiView.q.includes("operating without the required permit") && eboiView.marked.includes("I.C. 49-1004; an EL/EW permit up to 129,000 lbs"), "resume opens the rewritten question with the saved permit answer marked");
     await page.evaluate(() => localStorage.clear());
 
     await page.evaluate(() => {
@@ -785,34 +838,34 @@ async function main() {
     ok(page.__errors.length === 0, "no script errors during the quiz: " + page.__errors.join(" | "));
 
     const keysBeforeUpdate = await page.evaluate(async () => await caches.keys());
-    ok(keysBeforeUpdate.includes("poe-quiz-v23"), "normal load installs the v23 cache: " + keysBeforeUpdate.join(","));
+    ok(keysBeforeUpdate.includes("poe-quiz-v24"), "normal load installs the v24 cache: " + keysBeforeUpdate.join(","));
   } finally {
     await browser.close();
   }
 
   const browser2 = await launch();
   try {
-    server.setSw(STUB_V22);
+    server.setSw(STUB_V23);
     const page = await newPage(browser2);
     await page.goto(server.base, { waitUntil: "load" });
     await page.waitForSelector("#dash");
-    const firstKeys = await waitKeys(page, keys => keys.includes("poe-quiz-v22"), 15000);
-    ok(firstKeys.includes("poe-quiz-v22"), "first worker cache is the live v22: " + firstKeys.join(","));
+    const firstKeys = await waitKeys(page, keys => keys.includes("poe-quiz-v23"), 15000);
+    ok(firstKeys.includes("poe-quiz-v23"), "first worker cache is the live v23: " + firstKeys.join(","));
     server.setSw(null);
     await page.reload({ waitUntil: "load" });
-    const nextKeys = await waitKeys(page, keys => keys.length === 1 && keys[0] === "poe-quiz-v23", 15000);
-    ok(nextKeys.length === 1 && nextKeys[0] === "poe-quiz-v23", "updating the worker drops v22 and keeps v23: " + nextKeys.join(","));
+    const nextKeys = await waitKeys(page, keys => keys.length === 1 && keys[0] === "poe-quiz-v24", 15000);
+    ok(nextKeys.length === 1 && nextKeys[0] === "poe-quiz-v24", "updating the worker drops v23 and keeps v24: " + nextKeys.join(","));
     const cached = await page.evaluate(async () => {
       const keys = await caches.keys();
       const named = keys[0] ? await caches.open(keys[0]) : null;
       const hit = named ? await named.match("./index.html") : null;
       const text = hit ? await hit.text() : "";
-      const marker = named ? await named.match("marker-v22") : null;
-      return { hasApp: text.includes("Section quizzes") && text.includes("v23"), marker: !!marker, len: text.length };
+      const marker = named ? await named.match("marker-v23") : null;
+      return { hasApp: text.includes("Section quizzes") && text.includes("v24"), marker: !!marker, len: text.length };
     });
-    ok(cached.hasApp && cached.marker === false, "v23 cache holds the section quiz and the v22 marker is gone (" + JSON.stringify(cached) + ")");
+    ok(cached.hasApp && cached.marker === false, "v24 cache holds the section quiz and the v23 marker is gone (" + JSON.stringify(cached) + ")");
     const sub = await page.$eval("header .sub", el => el.textContent);
-    ok(sub.includes("v23"), "updated page shows v23");
+    ok(sub.includes("v24"), "updated page shows v24");
     await page.setOfflineMode(true);
     await page.reload({ waitUntil: "load" });
     await page.waitForSelector("#dash");
@@ -821,7 +874,7 @@ async function main() {
       n: POE.ITEMS.length,
       sub: document.querySelector("header .sub").textContent
     }));
-    ok(offline.heading === "Section quizzes" && offline.n === 377 && offline.sub.includes("v23"), "offline reload serves the updated quiz and all 377 questions");
+    ok(offline.heading === "Section quizzes" && offline.n === 377 && offline.sub.includes("v24"), "offline reload serves the updated quiz and all 377 questions");
     await page.click('[data-action="start"][data-section="wt"]');
     await page.waitForSelector("h3");
     const offlineQ = await page.$eval("h3", el => el.textContent);
