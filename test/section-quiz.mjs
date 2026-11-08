@@ -139,14 +139,24 @@ function checkBank() {
   const end = html.indexOf("];\nconst LETTERS");
   const bank = eval(html.slice(start + "const BANK = ".length, end + 1));
   const hash = crypto.createHash("sha256").update(JSON.stringify(bank)).digest("hex");
-  ok(bank.length === 386, "bank still has 386 questions");
-  ok(hash === "465b42e808a72a1514e64a1619f57d1fbe72919548791e511fbaa72df98302b0", "question wording, answers, and citations are unchanged");
+  ok(bank.length === 381, "bank has 381 questions after the five removals");
+  ok(hash === "8768718178af47c464be301587d480678d8cb1b95a7aa7fbc1393763ce71f03d", "remaining question wording, answers, and citations match");
+  const arrows = bank.find(b => b[1].startsWith("As a general rule, combination packages"));
+  ok(arrows && arrows[2] === "ORIENTATION ARROWS POINTING UP" && arrows[3].join("|") === "THIS END DOWN|KEEP UPRIGHT|DANGER" && arrows[4] === "Package orientation markings." && arrows[5] === "49 CFR 172.312(a); ITD POE Hazmat & Placards Worksheet p.2", "only the orientation-arrow choice is uppercased");
+  ok(!bank.some(b => b[1].includes("uniform hazardous waste manifest")), "the waste-PCB manifest question is gone");
+  ok(!bank.some(b => b[1].includes("5,000 gallons of gasoline")), "the unmarked railroad gasoline question is gone");
+  ok(!bank.some(b => b[1].includes("only transports hazmat")), "the carrier shipping-paper retention question is gone");
+  ok(!bank.some(b => b[1].includes("Liquefied petroleum gas")), "the LPG cargo-tank question is gone");
+  ok(!bank.some(b => b[1].includes("written incident report")), "the incident-report deadline question is gone");
+  ok(bank.some(b => b[1].startsWith("Waste PCBs at a concentration")), "the other PCB permit question stays");
+  ok(bank.some(b => b[1].includes("nearest rail")), "the other railroad-stop question stays");
+  ok(bank.some(b => b[1].includes("where must a driver keep the hazmat shipping papers")), "the other shipping-paper question stays");
   ok(!/\bD3\b/.test(html), "no D3 name added");
   ok(html.includes("district supervisor"), "existing district wording kept");
-  ok(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8").includes('const C="poe-quiz-v21"'), "service worker cache is v21");
+  ok(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8").includes('const C="poe-quiz-v22"'), "service worker cache is v22");
   const counts = {};
   bank.forEach(b => { counts[b[0]] = (counts[b[0]] || 0) + 1; });
-  ok(counts.wt === 71 && counts.size === 67 && counts.haz === 50 && counts.sec === 30 && counts.eqp === 35 && counts.rov === 34 && counts.wim === 31 && counts.reg === 68, "section counts unchanged");
+  ok(counts.wt === 71 && counts.size === 67 && counts.haz === 45 && counts.sec === 30 && counts.eqp === 35 && counts.rov === 34 && counts.wim === 31 && counts.reg === 68, "HazMat is 45 and every other section count is unchanged");
 }
 
 async function openHome(page, base) {
@@ -171,8 +181,130 @@ async function main() {
         passMax: POE.PASS_MAX
       };
     });
-    ok(spot.n === 386 && spot.ans === "34,000 lbs" && spot.district && !spot.d3 && spot.passMax === 2, "loaded bank keeps lbs wording and the 2-miss practice line");
+    ok(spot.n === 381 && spot.ans === "34,000 lbs" && spot.district && !spot.d3 && spot.passMax === 2, "loaded bank keeps lbs wording and the 2-miss practice line");
     ok(page.__errors.length === 0, "home page has no script errors: " + page.__errors.join(" | "));
+
+    const removed = ["haz:egde7o", "haz:1cig5l", "haz:1fa98sb", "haz:788p4", "haz:fme9xb"];
+    await page.evaluate(removedIds => {
+      localStorage.clear();
+      const wt = POE.ITEMS.filter(it => it.sec === "wt");
+      const answers = {};
+      wt.slice(0, 2).forEach(it => { answers[POE.QID(it)] = it.opts[it.ans]; });
+      removedIds.forEach(id => { answers[id] = "saved answer"; });
+      localStorage.setItem(POE.KEY_V1, JSON.stringify({
+        filter: "wt", shuffle: false, deck: [...removedIds, ...wt.map(POE.QID)], pos: 1, answers, finished: false, t: 1
+      }));
+    }, removed);
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const fromOld = await page.evaluate(removedIds => ({
+      present: removedIds.some(id => POE.ITEMS.some(it => POE.QID(it) === id)),
+      wt: {
+        len: POE.state().sections.wt.deck.length,
+        pos: POE.state().sections.wt.pos,
+        answered: Object.keys(POE.state().sections.wt.answers).length,
+        hasRemoved: POE.state().sections.wt.deck.some(id => removedIds.includes(id))
+      },
+      rawDeck: POE.state().legacy && POE.state().legacy.raw && POE.state().legacy.raw.deck.slice(0, removedIds.length)
+    }), removed);
+    ok(!fromOld.present && !fromOld.wt.hasRemoved && fromOld.wt.len === 71 && fromOld.wt.pos === 1 && fromOld.wt.answered === 2 && JSON.stringify(fromOld.rawDeck) === JSON.stringify(removed), "an older save drops the removed questions, keeps Weight, and stores the original save (" + JSON.stringify(fromOld) + ")");
+    const wtOld = await card(page, "wt");
+    ok(wtOld.status === "progress" && wtOld.answered === "2" && wtOld.badge === "In progress", "the restored Weight quiz stays in progress");
+
+    await page.evaluate(removedIds => {
+      localStorage.clear();
+      const haz = POE.ITEMS.filter(it => it.sec === "haz");
+      const wt = POE.ITEMS.filter(it => it.sec === "wt");
+      const keep = haz.slice(0, 5);
+      const sections = {};
+      POE.SECTIONS.forEach(s => { sections[s.id] = { shuffle: false, deck: [], pos: 0, answers: {}, finished: false }; });
+      const hazAnswers = {};
+      keep.slice(0, 3).forEach(it => { hazAnswers[POE.QID(it)] = it.opts[it.ans]; });
+      removedIds.forEach(id => { hazAnswers[id] = "saved answer"; });
+      sections.haz = { shuffle: false, deck: [POE.QID(keep[0]), ...removedIds, ...keep.slice(1).map(POE.QID)], pos: 2, answers: hazAnswers, finished: false };
+      const wtAnswers = {};
+      wt.slice(0, 4).forEach((it, i) => { wtAnswers[POE.QID(it)] = i === 0 ? it.opts.find((_, k) => k !== it.ans) : it.opts[it.ans]; });
+      sections.wt = { shuffle: false, deck: wt.map(POE.QID), pos: 6, answers: wtAnswers, finished: false };
+      const mixedAnswers = { [POE.QID(keep[0])]: keep[0].opts[keep[0].ans] };
+      removedIds.forEach(id => { mixedAnswers[id] = "saved answer"; });
+      localStorage.setItem(POE.KEY, JSON.stringify({
+        v: 2,
+        sections,
+        mixed: { shuffle: false, filter: "all", deck: [...removedIds, POE.QID(keep[0])], pos: 1, answers: mixedAnswers, finished: false },
+        legacy: { raw: { deck: removedIds, pos: 0, answers: {}, finished: true }, placed: "kept", detail: "backup", dismissed: true }
+      }));
+    }, removed);
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const orphan = await page.evaluate(removedIds => ({
+      gone: !POE.ITEMS.some(it => /uniform hazardous waste manifest|5,000 gallons of gasoline|only transports hazmat|Liquefied petroleum gas|written incident report/.test(it.q)),
+      hazDeck: POE.state().sections.haz.deck,
+      hazHasRemoved: POE.state().sections.haz.deck.some(id => removedIds.includes(id)),
+      hazPos: POE.state().sections.haz.pos,
+      hazAnswers: Object.keys(POE.state().sections.haz.answers).length,
+      wtPos: POE.state().sections.wt.pos,
+      wtAnswered: Object.keys(POE.state().sections.wt.answers).length,
+      wtLen: POE.state().sections.wt.deck.length,
+      mixedDeck: POE.state().mixed.deck,
+      mixedPos: POE.state().mixed.pos,
+      legacyKept: !!(POE.state().legacy && POE.state().legacy.raw && JSON.stringify(POE.state().legacy.raw.deck) === JSON.stringify(removedIds))
+    }), removed);
+    ok(orphan.gone && !orphan.hazHasRemoved && orphan.hazDeck.length === 5 && orphan.hazPos === 2 && orphan.hazAnswers === 3, "a saved HazMat deck drops the removed questions and keeps the rest (" + JSON.stringify(orphan) + ")");
+    ok(orphan.wtPos === 6 && orphan.wtAnswered === 4 && orphan.wtLen === 71, "Weight progress stays when the removed HazMat questions are dropped");
+    ok(orphan.mixedDeck.length === 1 && !orphan.mixedDeck.some(id => removed.includes(id)) && orphan.mixedPos === 0 && orphan.legacyKept, "mixed progress drops the missing questions and the backup save is kept");
+    ok((await card(page, "haz")).status === "progress" && (await card(page, "haz")).answered === "3", "HazMat stays in progress after the missing question is ignored");
+    ok((await card(page, "wt")).pos === "6" && (await card(page, "wt")).answered === "4" && (await card(page, "wt")).missed === "1", "Weight still shows its saved place and miss");
+    await page.click('[data-action="resume"][data-section="haz"]');
+    await page.waitForSelector("h3");
+    const resumed = await page.evaluate(() => ({ q: document.querySelector("h3").textContent, pos: document.querySelector("[data-pos]").dataset.pos }));
+    const expectedQ = await page.evaluate(() => POE.ITEMS.filter(it => it.sec === "haz")[2].q);
+    ok(resumed.pos === "2" && resumed.q === expectedQ, "HazMat resumes a saved question that is still in the bank");
+    ok(page.__errors.length === 0, "dropping a removed saved question does not throw: " + page.__errors.join(" | "));
+    await page.evaluate(() => localStorage.clear());
+
+    await page.evaluate(() => {
+      localStorage.clear();
+      const it = POE.ITEMS.find(item => item.q.startsWith("As a general rule, combination packages"));
+      const sections = {};
+      POE.SECTIONS.forEach(s => { sections[s.id] = { shuffle: false, deck: [], pos: 0, answers: {}, finished: false }; });
+      const haz = POE.ITEMS.filter(item => item.sec === "haz");
+      const answers = {};
+      haz.forEach(item => { answers[POE.QID(item)] = item.opts[item.ans]; });
+      answers[POE.QID(it)] = "Orientation arrows pointing up";
+      sections.haz = { shuffle: false, deck: haz.map(POE.QID), pos: haz.indexOf(it), answers, finished: false };
+      const size = POE.ITEMS.filter(item => item.sec === "size");
+      const sizeAnswers = {};
+      size.slice(0, 2).forEach(item => { sizeAnswers[POE.QID(item)] = item.opts[item.ans]; });
+      sections.size = { shuffle: false, deck: size.map(POE.QID), pos: 3, answers: sizeAnswers, finished: false };
+      localStorage.setItem(POE.KEY, JSON.stringify({ v: 2, sections, mixed: { shuffle: true, filter: "all", deck: [], pos: 0, answers: {}, finished: false }, legacy: null }));
+    });
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const arrows = await page.evaluate(() => {
+      const it = POE.ITEMS.find(item => item.q.startsWith("As a general rule, combination packages"));
+      const saved = POE.state().sections.haz.answers[POE.QID(it)];
+      const g = POE.gradeSection("haz");
+      return {
+        correct: it.opts[it.ans],
+        saved,
+        status: g.status,
+        missed: g.missed,
+        answered: g.answered,
+        pos: POE.state().sections.haz.pos,
+        sizePos: POE.state().sections.size.pos,
+        sizeAnswered: Object.keys(POE.state().sections.size.answers).length
+      };
+    });
+    ok(arrows.correct === "ORIENTATION ARROWS POINTING UP" && arrows.saved === "ORIENTATION ARROWS POINTING UP" && arrows.status === "pass" && arrows.missed === 0 && arrows.answered === 45, "an older mixed-case orientation answer still counts as correct (" + JSON.stringify(arrows) + ")");
+    ok(arrows.sizePos === 3 && arrows.sizeAnswered === 2, "the casing match leaves Size progress in place");
+    await page.click('[data-action="resume"][data-section="haz"]');
+    await page.waitForSelector("h3");
+    const arrowView = await page.evaluate(() => {
+      const chosen = [...document.querySelectorAll(".opt")].map(el => ({ text: el.textContent, ok: el.classList.contains("ok") }));
+      return { q: document.querySelector("h3").textContent, chosen };
+    });
+    ok(arrowView.q.startsWith("As a general rule, combination packages") && arrowView.chosen.some(o => o.ok && o.text.includes("ORIENTATION ARROWS POINTING UP")) && !arrowView.chosen.some(o => o.text.includes("Orientation arrows pointing up")), "the saved answer shows the uppercase choice as correct");
+    await page.evaluate(() => localStorage.clear());
 
     await page.evaluate(() => {
       const { QID, ITEMS, SECTIONS, KEY } = POE;
@@ -190,7 +322,7 @@ async function main() {
       SECTIONS.forEach(s => { sections[s.id] = { shuffle: true, deck: [], pos: 0, answers: {}, finished: false }; });
       sections.wt = sess("wt", 2, 0);
       sections.size = sess("size", 3, 0);
-      sections.haz = sess("haz", 0, 40);
+      sections.haz = sess("haz", 0, ITEMS.filter(it => it.sec === "haz").length - 10);
       sections.haz.pos = 5;
       sections.sec = sess("sec", 1, 0);
       sections.eqp = sess("eqp", 0, 0);
@@ -495,7 +627,7 @@ async function main() {
     const hazRow = await page.$eval('[data-mixed-section="haz"]', el => ({ status: el.dataset.status, text: el.textContent }));
     const wtRow = await page.$eval('[data-mixed-section="wt"]', el => ({ status: el.dataset.status, text: el.textContent }));
     const sizeRow = await page.$eval('[data-mixed-section="size"]', el => el.dataset.status);
-    ok(fullMixed.len === "386" && fullMixed.pos === "100" && fullMixed.badge === "NEEDS WORK", "a finished 386-question save keeps its place and is not given one overall PASS");
+    ok(fullMixed.len === "381" && fullMixed.pos === "100" && fullMixed.badge === "NEEDS WORK", "a finished 381-question save keeps its place and is not given one overall PASS");
     ok(hazRow.status === "needs" && hazRow.text.includes("NEEDS WORK"), "HazMat with 3 misses in the old mixed quiz needs work");
     ok(wtRow.status === "pass" && wtRow.text.includes("PASS"), "Weight with 2 misses in the old mixed quiz passes that section");
     ok(sizeRow === "pass", "a perfect Size section inside the finished mixed quiz passes");
@@ -595,7 +727,7 @@ async function main() {
     ok(page.__errors.length === 0, "no script errors during the quiz: " + page.__errors.join(" | "));
 
     const keysBeforeUpdate = await page.evaluate(async () => await caches.keys());
-    ok(keysBeforeUpdate.includes("poe-quiz-v21"), "normal load installs the v21 cache: " + keysBeforeUpdate.join(","));
+    ok(keysBeforeUpdate.includes("poe-quiz-v22"), "normal load installs the v22 cache: " + keysBeforeUpdate.join(","));
   } finally {
     await browser.close();
   }
@@ -610,19 +742,19 @@ async function main() {
     ok(firstKeys.includes("poe-quiz-v20"), "first worker cache is v20: " + firstKeys.join(","));
     server.setSw(null);
     await page.reload({ waitUntil: "load" });
-    const nextKeys = await waitKeys(page, keys => keys.length === 1 && keys[0] === "poe-quiz-v21", 15000);
-    ok(nextKeys.length === 1 && nextKeys[0] === "poe-quiz-v21", "updating the worker drops v20 and keeps v21: " + nextKeys.join(","));
+    const nextKeys = await waitKeys(page, keys => keys.length === 1 && keys[0] === "poe-quiz-v22", 15000);
+    ok(nextKeys.length === 1 && nextKeys[0] === "poe-quiz-v22", "updating the worker drops v20 and keeps v22: " + nextKeys.join(","));
     const cached = await page.evaluate(async () => {
       const keys = await caches.keys();
       const named = keys[0] ? await caches.open(keys[0]) : null;
       const hit = named ? await named.match("./index.html") : null;
       const text = hit ? await hit.text() : "";
       const marker = named ? await named.match("marker-v20") : null;
-      return { hasApp: text.includes("Section quizzes") && text.includes("v21"), marker: !!marker, len: text.length };
+      return { hasApp: text.includes("Section quizzes") && text.includes("v22"), marker: !!marker, len: text.length };
     });
-    ok(cached.hasApp && cached.marker === false, "v21 cache holds the section quiz and the v20 marker is gone (" + JSON.stringify(cached) + ")");
+    ok(cached.hasApp && cached.marker === false, "v22 cache holds the section quiz and the v20 marker is gone (" + JSON.stringify(cached) + ")");
     const sub = await page.$eval("header .sub", el => el.textContent);
-    ok(sub.includes("v21"), "updated page shows v21");
+    ok(sub.includes("v22"), "updated page shows v22");
     await page.setOfflineMode(true);
     await page.reload({ waitUntil: "load" });
     await page.waitForSelector("#dash");
@@ -631,7 +763,7 @@ async function main() {
       n: POE.ITEMS.length,
       sub: document.querySelector("header .sub").textContent
     }));
-    ok(offline.heading === "Section quizzes" && offline.n === 386 && offline.sub.includes("v21"), "offline reload serves the updated quiz and all 386 questions");
+    ok(offline.heading === "Section quizzes" && offline.n === 381 && offline.sub.includes("v22"), "offline reload serves the updated quiz and all 381 questions");
     await page.click('[data-action="start"][data-section="wt"]');
     await page.waitForSelector("h3");
     const offlineQ = await page.$eval("h3", el => el.textContent);
