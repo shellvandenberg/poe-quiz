@@ -82,8 +82,8 @@ function startServer() {
   });
 }
 
-const STUB_V28 = `const C="poe-quiz-v28",F=["./","./index.html","./POE_Quiz_singlefile.html","./manifest.json","./icon.svg","./icon-192.png","./icon-512.png"];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(async c=>{await c.addAll(F); await c.put("marker-v28", new Response("old-cache"));}));self.skipWaiting()});
+const STUB_V29 = `const C="poe-quiz-v29",F=["./","./index.html","./POE_Quiz_singlefile.html","./manifest.json","./icon.svg","./icon-192.png","./icon-512.png"];
+self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(async c=>{await c.addAll(F); await c.put("marker-v29", new Response("old-cache"));}));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});
 self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request)))});
 `;
@@ -141,9 +141,13 @@ function checkBank() {
   const bank = eval(html.slice(start + "const BANK = ".length, end + 1));
   const hash = crypto.createHash("sha256").update(JSON.stringify(bank)).digest("hex");
   ok(bank.length === 381, "bank has 381 questions");
-  ok(hash === "c65e367e04ca16ef89fe6016c482ee694c9cc709be1ea75f8670e84dfb2994da", "remaining question wording, answers, and citations match");
+  ok(hash === "504735cfe6dc4faf24a1c847dbeb483521b447eb53b621a7cb9ed86817dd0cf4", "remaining question wording, answers, and citations match");
   const eboi = bank.find(b => b[1].includes("EBOI eastbound"));
   ok(eboi && eboi[1] === "A driver crosses the EBOI eastbound scale with a 10-axle combination that weighs 119,260 lbs. The truck is registered for 120,000 lbs and does not have a permit. Which code section would you use to cite operating without the required permit, and what permit does the combination need?" && eboi[2] === "I.C. 49-1004; an EL/EW permit up to 129,000 lbs" && eboi[3].join("|") === "I.C. 49-1010(3); a reducible oversize permit|I.C. 49-1001(3); an EL/EW permit|I.C. 49-1004(3); a 192,000 lbs permit" && eboi[4] === "Worksheet #23." && eboi[5] === "I.C. 49-1004(1); ITD POE Weight Worksheet p.8", "worksheet 23 stem has the scale context and the same answer");
+  const cargo = bank.find(b => b[1].includes("not a truck tractor"));
+  ok(cargo && cargo[1] === "Under Idaho Code 49-1010(7), a combination operating by permit on a route designated for an overall length of up to 115 feet consists of a truck (not a truck tractor) and two trailing units. What is the maximum cargo-carrying length allowed?" && cargo[2] === "98 feet" && cargo[3].join("|") === "95 feet|85 feet|115 feet" && cargo[4].startsWith("I.C. 49-1010(7)(c)") && cargo[4].includes("95 feet under I.C. 49-1010(7)(a) and (7)(b)") && cargo[4].includes("overall combination length, not the cargo-carrying length") && cargo[5] === "I.C. 49-1010(7)(c); ITD Extra Length/Excess Weight up to 129,000 lbs Route Chart (Dec 30, 2025) notes" && !/\bft\b/.test(cargo[4]), "the full-truck cargo length cites 49-1010(7)(c) and stays 98 feet");
+  ok(bank.some(b => b[1] === "Under I.C. 49-1010(7), what is the maximum cargo-carrying length for a truck tractor with two or three trailing units?" && b[2] === "95 feet" && b[5] === "I.C. 49-1010(7)(a), (b)"), "the tractor cargo-length question is unchanged");
+  ok(!bank.some(b => b[1].includes("full truck pulling two trailers")), "the old route-chart-only stem is gone");
   const arrows = bank.find(b => b[1].startsWith("As a general rule, combination packages"));
   ok(arrows && arrows[2] === "ORIENTATION ARROWS POINTING UP" && arrows[3].join("|") === "THIS END DOWN|KEEP UPRIGHT|DANGER" && arrows[4] === "Package orientation markings." && arrows[5] === "49 CFR 172.312(a); ITD POE Hazmat & Placards Worksheet p.2", "only the orientation-arrow choice is uppercased");
   const agency = bank.find(b => b[1] === "Which agency should you contact about hazmat out-of-service criteria?");
@@ -181,7 +185,7 @@ function checkBank() {
   ok(bank.some(b => b[1].includes("Rule 18 and Rule 19")), "the existing Rule 18 question stays");
   ok(!/\bD3\b/.test(html), "no D3 name added");
   ok(html.includes("district supervisor"), "existing district wording kept");
-  ok(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8").includes('const C="poe-quiz-v29"'), "service worker cache is v29");
+  ok(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8").includes('const C="poe-quiz-v30"'), "service worker cache is v30");
   const counts = {};
   bank.forEach(b => { counts[b[0]] = (counts[b[0]] || 0) + 1; });
   ok(counts.wt === 78 && counts.size === 67 && counts.haz === 41 && counts.sec === 30 && counts.eqp === 32 && counts.rov === 34 && counts.wim === 31 && counts.reg === 68, "Weight is 78 and every other section count is unchanged");
@@ -618,6 +622,39 @@ async function main() {
     const markedCode = await page.$eval(".opt.ok", el => el.textContent);
     ok(markedCode.includes("I.C. 49-1001(10)(e)") && !markedCode.includes("49-1001(11)(e)"), "resume marks the current 49-1001(10)(e) choice correct");
     await page.evaluate(() => localStorage.clear());
+    await page.evaluate(oldId => {
+      const { QID, ITEMS, SECTIONS, KEY } = POE;
+      const size = ITEMS.filter(it => it.sec === "size");
+      const target = size.find(it => it.q.includes("not a truck tractor"));
+      const idx = size.indexOf(target);
+      const deck = size.map(QID);
+      deck[idx] = oldId;
+      const answers = {};
+      answers[oldId] = "98 feet";
+      const sections = {};
+      SECTIONS.forEach(s => { sections[s.id] = { shuffle: false, deck: [], pos: 0, answers: {}, finished: false }; });
+      sections.size = { shuffle: false, deck, pos: idx, answers, finished: false };
+      localStorage.setItem(KEY, JSON.stringify({ v: 2, sections, mixed: { shuffle: true, filter: "all", deck: [], pos: 0, answers: {}, finished: false }, legacy: null }));
+    }, "size:14grbkc");
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const cargoMove = await page.evaluate(oldId => {
+      const it = POE.ITEMS.find(item => item.q.includes("not a truck tractor"));
+      const id = POE.QID(it);
+      const sess = POE.state().sections.size;
+      const g = POE.gradeSection("size");
+      const expectedPos = POE.ITEMS.filter(it => it.sec === "size").findIndex(item => item.q.includes("not a truck tractor"));
+      return { id, inDeck: sess.deck.includes(id), oldInDeck: sess.deck.includes(oldId), saved: sess.answers[id], correct: g.correct, answered: g.answered, pos: sess.pos, expectedPos };
+    }, "size:14grbkc");
+    ok(cargoMove.id === "size:ztsjt2" && cargoMove.inDeck && !cargoMove.oldInDeck && cargoMove.saved === "98 feet" && cargoMove.correct === 1 && cargoMove.answered === 1 && cargoMove.pos === cargoMove.expectedPos, "a save under the old cargo-length wording still counts as 98 feet (" + JSON.stringify(cargoMove) + ")");
+    await page.click('[data-action="resume"][data-section="size"]');
+    await page.waitForSelector("h3");
+    const cargoView = await page.evaluate(() => ({
+      q: document.querySelector("h3").textContent,
+      marked: [...document.querySelectorAll(".opt.ok")].map(el => el.textContent).join(" ")
+    }));
+    ok(cargoView.q.includes("Idaho Code 49-1010(7)") && cargoView.q.includes("not a truck tractor") && cargoView.marked.includes("98 feet"), "resume opens the rewritten cargo-length question with 98 feet marked");
+    await page.evaluate(() => localStorage.clear());
 
     await page.evaluate(() => {
       const { QID, ITEMS, SECTIONS, KEY } = POE;
@@ -1040,34 +1077,34 @@ async function main() {
     ok(page.__errors.length === 0, "no script errors during the quiz: " + page.__errors.join(" | "));
 
     const keysBeforeUpdate = await page.evaluate(async () => await caches.keys());
-    ok(keysBeforeUpdate.includes("poe-quiz-v29"), "normal load installs the v29 cache: " + keysBeforeUpdate.join(","));
+    ok(keysBeforeUpdate.includes("poe-quiz-v30"), "normal load installs the v30 cache: " + keysBeforeUpdate.join(","));
   } finally {
     await browser.close();
   }
 
   const browser2 = await launch();
   try {
-    server.setSw(STUB_V28);
+    server.setSw(STUB_V29);
     const page = await newPage(browser2);
     await page.goto(server.base, { waitUntil: "load" });
     await page.waitForSelector("#dash");
-    const firstKeys = await waitKeys(page, keys => keys.includes("poe-quiz-v28"), 15000);
-    ok(firstKeys.includes("poe-quiz-v28"), "first worker cache is the live v28: " + firstKeys.join(","));
+    const firstKeys = await waitKeys(page, keys => keys.includes("poe-quiz-v29"), 15000);
+    ok(firstKeys.includes("poe-quiz-v29"), "first worker cache is the live v29: " + firstKeys.join(","));
     server.setSw(null);
     await page.reload({ waitUntil: "load" });
-    const nextKeys = await waitKeys(page, keys => keys.length === 1 && keys[0] === "poe-quiz-v29", 15000);
-    ok(nextKeys.length === 1 && nextKeys[0] === "poe-quiz-v29", "updating the worker drops v28 and keeps v29: " + nextKeys.join(","));
+    const nextKeys = await waitKeys(page, keys => keys.length === 1 && keys[0] === "poe-quiz-v30", 15000);
+    ok(nextKeys.length === 1 && nextKeys[0] === "poe-quiz-v30", "updating the worker drops v29 and keeps v30: " + nextKeys.join(","));
     const cached = await page.evaluate(async () => {
       const keys = await caches.keys();
       const named = keys[0] ? await caches.open(keys[0]) : null;
       const hit = named ? await named.match("./index.html") : null;
       const text = hit ? await hit.text() : "";
-      const marker = named ? await named.match("marker-v28") : null;
-      return { hasApp: text.includes("Section quizzes") && text.includes("v29"), marker: !!marker, len: text.length };
+      const marker = named ? await named.match("marker-v29") : null;
+      return { hasApp: text.includes("Section quizzes") && text.includes("v30"), marker: !!marker, len: text.length };
     });
-    ok(cached.hasApp && cached.marker === false, "v29 cache holds the section quiz and the v28 marker is gone (" + JSON.stringify(cached) + ")");
+    ok(cached.hasApp && cached.marker === false, "v30 cache holds the section quiz and the v29 marker is gone (" + JSON.stringify(cached) + ")");
     const sub = await page.$eval("header .sub", el => el.textContent);
-    ok(sub.includes("v29"), "updated page shows v29");
+    ok(sub.includes("v30"), "updated page shows v30");
     await page.setOfflineMode(true);
     await page.reload({ waitUntil: "load" });
     await page.waitForSelector("#dash");
@@ -1076,7 +1113,7 @@ async function main() {
       n: POE.ITEMS.length,
       sub: document.querySelector("header .sub").textContent
     }));
-    ok(offline.heading === "Section quizzes" && offline.n === 381 && offline.sub.includes("v29"), "offline reload serves the updated quiz and all 381 questions");
+    ok(offline.heading === "Section quizzes" && offline.n === 381 && offline.sub.includes("v30"), "offline reload serves the updated quiz and all 381 questions");
     await page.click('[data-action="start"][data-section="wt"]');
     await page.waitForSelector("h3");
     const offlineQ = await page.$eval("h3", el => el.textContent);
