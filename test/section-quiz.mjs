@@ -82,8 +82,8 @@ function startServer() {
   });
 }
 
-const STUB_V25 = `const C="poe-quiz-v25",F=["./","./index.html","./POE_Quiz_singlefile.html","./manifest.json","./icon.svg","./icon-192.png","./icon-512.png"];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(async c=>{await c.addAll(F); await c.put("marker-v25", new Response("old-cache"));}));self.skipWaiting()});
+const STUB_V28 = `const C="poe-quiz-v28",F=["./","./index.html","./POE_Quiz_singlefile.html","./manifest.json","./icon.svg","./icon-192.png","./icon-512.png"];
+self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(async c=>{await c.addAll(F); await c.put("marker-v28", new Response("old-cache"));}));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});
 self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request)))});
 `;
@@ -140,8 +140,8 @@ function checkBank() {
   const end = html.indexOf("];\nconst LETTERS");
   const bank = eval(html.slice(start + "const BANK = ".length, end + 1));
   const hash = crypto.createHash("sha256").update(JSON.stringify(bank)).digest("hex");
-  ok(bank.length === 374, "bank has 374 questions");
-  ok(hash === "f4e3cee98c35e24409237299c27db9209fe574ed463bb78331623fb722c848d2", "remaining question wording, answers, and citations match");
+  ok(bank.length === 381, "bank has 381 questions");
+  ok(hash === "c65e367e04ca16ef89fe6016c482ee694c9cc709be1ea75f8670e84dfb2994da", "remaining question wording, answers, and citations match");
   const eboi = bank.find(b => b[1].includes("EBOI eastbound"));
   ok(eboi && eboi[1] === "A driver crosses the EBOI eastbound scale with a 10-axle combination that weighs 119,260 lbs. The truck is registered for 120,000 lbs and does not have a permit. Which code section would you use to cite operating without the required permit, and what permit does the combination need?" && eboi[2] === "I.C. 49-1004; an EL/EW permit up to 129,000 lbs" && eboi[3].join("|") === "I.C. 49-1010(3); a reducible oversize permit|I.C. 49-1001(3); an EL/EW permit|I.C. 49-1004(3); a 192,000 lbs permit" && eboi[4] === "Worksheet #23." && eboi[5] === "I.C. 49-1004(1); ITD POE Weight Worksheet p.8", "worksheet 23 stem has the scale context and the same answer");
   const arrows = bank.find(b => b[1].startsWith("As a general rule, combination packages"));
@@ -156,6 +156,7 @@ function checkBank() {
   ok(!bank.some(b => b[1].includes("written incident report")), "the incident-report deadline question is gone");
   ok(!bank.some(b => b[1].includes("apply to hazmat carriers")), "the FMCSR hazmat-carrier question is gone");
   ok(!bank.some(b => b[1].includes("shipping papers in the cargo compartment")), "the cargo-compartment shipping-papers question is gone");
+  ok(bank.some(b => b[1].includes("where must a driver keep the hazmat shipping papers")), "the other shipping-paper question stays");
   ok(!bank.some(b => b[1].includes("hazardous MATERIALS regulated under 49 CFR 171-172")), "the materials-credentials duplicate is gone");
   ok(bank.some(b => b[1].includes("placarded hazardous WASTES")), "the placarded-waste credentials question stays");
   ok(bank.some(b => b[1].includes("40 CFR 262 manifest")), "the manifest credentials question stays");
@@ -166,13 +167,24 @@ function checkBank() {
   ok(bank.some(b => b[1].includes("Two 4 B:C") || b[2] === "Two 4 B:C extinguishers" || (b[3] || []).includes("Two 4 B:C extinguishers") || b[1].includes("5 B:C fire extinguisher")), "the other fire-extinguisher question stays");
   const utah = bank.find(b => b[1].includes("Idaho-Utah farm reciprocity"));
   ok(utah && utah[1] === "Under the Idaho-Utah farm reciprocity agreement, interstate farm reciprocity applies at what gross weight?" && utah[2] === "80,000 lbs or less" && utah[4].includes("intrastate operation in Idaho") && utah[4].includes("temporary permit or other valid interstate registration") && !/never/i.test(utah[4]), "full-fee wording says intrastate registration without banning every interstate trip");
-  ok(bank.some(b => b[1].includes("where must a driver keep the hazmat shipping papers")), "the other shipping-paper question stays");
+  ok(!bank.some(b => b[1].includes("posted bridge limits or seasonal")), "the posted-bridge allowance question is gone");
+  ok(bank.filter(b => b[5].includes("49-1011(3)") || b[1].includes("49-1011(3)")).length === 4, "the other 49-1011(3) allowance questions stay");
+  ok(bank.filter(b => b[1].startsWith("A variable load suspension (VLS) axle is not deployed")).length === 2, "both undeployed VLS thresholds are asked");
+  ok(bank.filter(b => b[4].includes("not the I.C. 49-1011(3) allowance")).length === 2, "the VLS threshold is not described as that allowance");
+  const deployCode = bank.find(b => b[2] === "I.C. 49-1001(10)(e)");
+  ok(deployCode && deployCode[5] === "I.C. 49-1001(10)(e); ITD DMV/POE Policy Manual 105.16" && deployCode[1].includes("Which current code applies") && deployCode[4].includes("fully deployed or fully raised") && deployCode[4].includes("older I.C. 49-1001(11)(e)"), "failure to deploy is keyed to current 49-1001(10)(e), with the manual's older 11(e) noted");
+  ok(!bank.some(b => b[2].includes("49-1001(11)(e)") || b[5].includes("49-1001(11)(e)") || (b[3] || []).some(o => o.includes("49-1001(11)(e)"))), "49-1001(11)(e) is not offered as a current answer or citation");
+  const deployed = bank.find(b => b[1].includes("axle is deployed. How is the group"));
+  ok(deployed && deployed[2].includes("individually, or find the VLS axle weight by prequalification") && deployed[4].includes("One of those methods is used, not both"), "a deployed VLS axle is weighed individually or by prequalification, not both");
+  ok(bank.filter(b => b[5] === "ITD DMV/POE Policy Manual 105.17").length === 2, "the air-suspension questions cite 105.17");
+  ok(!bank.some(b => /VLS|10-foot spread/.test(b[1]) && b[5].includes("105.18")), "the new weighing questions do not use the cut-off 105.18 section");
+  ok(bank.some(b => b[1].includes("Rule 18 and Rule 19")), "the existing Rule 18 question stays");
   ok(!/\bD3\b/.test(html), "no D3 name added");
   ok(html.includes("district supervisor"), "existing district wording kept");
-  ok(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8").includes('const C="poe-quiz-v26"'), "service worker cache is v26");
+  ok(fs.readFileSync(path.join(ROOT, "sw.js"), "utf8").includes('const C="poe-quiz-v29"'), "service worker cache is v29");
   const counts = {};
   bank.forEach(b => { counts[b[0]] = (counts[b[0]] || 0) + 1; });
-  ok(counts.wt === 71 && counts.size === 67 && counts.haz === 41 && counts.sec === 30 && counts.eqp === 32 && counts.rov === 34 && counts.wim === 31 && counts.reg === 68, "Equipment is 32 and every other section count is unchanged");
+  ok(counts.wt === 78 && counts.size === 67 && counts.haz === 41 && counts.sec === 30 && counts.eqp === 32 && counts.rov === 34 && counts.wim === 31 && counts.reg === 68, "Weight is 78 and every other section count is unchanged");
 }
 
 async function openHome(page, base) {
@@ -196,7 +208,7 @@ async function main() {
         d3: POE.ITEMS.some(it => (it.q + it.opts.join(" ") + it.expl + it.cite).includes("D3")),
         line: {
           p27: POE.passes(27, 30), p26: POE.passes(26, 30), p28: POE.passes(28, 30),
-          p64: POE.passes(64, 71), p63: POE.passes(63, 71),
+          p71: POE.passes(71, 78), p70: POE.passes(70, 78),
           p61: POE.passes(61, 67), p60: POE.passes(60, 67),
           p37: POE.passes(37, 41), p36: POE.passes(36, 41),
           p32: POE.passes(32, 35), p31: POE.passes(31, 35),
@@ -204,13 +216,13 @@ async function main() {
           r31: POE.passes(31, 34), r30: POE.passes(30, 34),
           w28: POE.passes(28, 31), w27: POE.passes(27, 31),
           g62: POE.passes(62, 68), g61: POE.passes(61, 68),
-          pct27: POE.scorePct(27, 30), pct26: POE.scorePct(26, 30), pct63: POE.scorePct(63, 71), pct64: POE.scorePct(64, 71)
+          pct27: POE.scorePct(27, 30), pct26: POE.scorePct(26, 30), pct70: POE.scorePct(70, 78), pct71: POE.scorePct(71, 78)
         }
       };
     });
-    ok(spot.n === 374 && spot.ans === "34,000 lbs" && spot.district && !spot.d3, "loaded bank keeps lbs wording");
-    ok(spot.line.p27 && !spot.line.p26 && spot.line.p28 && spot.line.p64 && !spot.line.p63 && spot.line.p61 && !spot.line.p60 && spot.line.p37 && !spot.line.p36 && spot.line.e29 && !spot.line.e28 && spot.line.r31 && !spot.line.r30 && spot.line.w28 && !spot.line.w27 && spot.line.g62 && !spot.line.g61, "90% uses an exact ratio for every section length");
-    ok(spot.line.pct27 === "90.0%" && spot.line.pct26 === "86.6%" && spot.line.pct63 === "88.7%" && spot.line.pct64 === "90.1%", "a score under 90% is not displayed as 90%");
+    ok(spot.n === 381 && spot.ans === "34,000 lbs" && spot.district && !spot.d3, "loaded bank keeps lbs wording");
+    ok(spot.line.p27 && !spot.line.p26 && spot.line.p28 && spot.line.p71 && !spot.line.p70 && spot.line.p61 && !spot.line.p60 && spot.line.p37 && !spot.line.p36 && spot.line.e29 && !spot.line.e28 && spot.line.r31 && !spot.line.r30 && spot.line.w28 && !spot.line.w27 && spot.line.g62 && !spot.line.g61, "90% uses an exact ratio for every section length");
+    ok(spot.line.pct27 === "90.0%" && spot.line.pct26 === "86.6%" && spot.line.pct70 === "89.7%" && spot.line.pct71 === "91.0%", "a score under 90% is not displayed as 90%");
 
     async function putMisses(spec) {
       await page.evaluate(spec => {
@@ -233,7 +245,7 @@ async function main() {
     const line = {};
     for (const id of ["sec", "wt", "size", "haz", "eqp", "rov", "wim", "reg"]) line[id] = await card(page, id);
     ok(line.sec.status === "pass" && line.sec.correct === "27" && line.sec.score === "90.0%" && line.sec.answered === "30", "27/30 is exactly 90% and passes");
-    ok(line.wt.status === "pass" && line.wt.correct === "64" && line.wt.score === "90.1%", "64/71 passes");
+    ok(line.wt.status === "pass" && line.wt.correct === "71" && line.wt.answered === "78" && line.wt.score === "91.0%", "71/78 passes and 70/78 does not");
     ok(line.size.status === "needs" && line.size.correct === "60" && line.size.score === "89.5%", "60/67 is below 90%");
     ok(line.haz.status === "pass" && line.haz.correct === "37", "37/41 passes");
     ok(line.eqp.status === "pass" && line.eqp.correct === "29" && line.eqp.answered === "32" && line.eqp.score === "90.6%", "29/32 is the Equipment pass line");
@@ -250,7 +262,7 @@ async function main() {
     await page.evaluate(() => localStorage.clear());
     ok(page.__errors.length === 0, "home page has no script errors: " + page.__errors.join(" | "));
 
-    const removed = ["haz:egde7o", "haz:1cig5l", "haz:1fa98sb", "haz:788p4", "haz:fme9xb", "haz:14cn7ir", "haz:d51sr7", "haz:1wb9lbe", "haz:15wpdls", "eqp:15u43op", "eqp:ky5ndd", "eqp:16h2u9"];
+    const removed = ["haz:egde7o", "haz:1cig5l", "haz:1fa98sb", "haz:788p4", "haz:fme9xb", "haz:14cn7ir", "haz:d51sr7", "haz:1wb9lbe", "haz:15wpdls", "eqp:15u43op", "eqp:ky5ndd", "eqp:16h2u9", "wt:6pulef"];
     await page.evaluate(removedIds => {
       localStorage.clear();
       const wt = POE.ITEMS.filter(it => it.sec === "wt");
@@ -273,7 +285,7 @@ async function main() {
       },
       rawDeck: POE.state().legacy && POE.state().legacy.raw && POE.state().legacy.raw.deck.slice(0, removedIds.length)
     }), removed);
-    ok(!fromOld.present && !fromOld.wt.hasRemoved && fromOld.wt.len === 71 && fromOld.wt.pos === 1 && fromOld.wt.answered === 2 && JSON.stringify(fromOld.rawDeck) === JSON.stringify(removed), "an older save drops the removed questions, keeps Weight, and stores the original save (" + JSON.stringify(fromOld) + ")");
+    ok(!fromOld.present && !fromOld.wt.hasRemoved && fromOld.wt.len === 78 && fromOld.wt.pos === 1 && fromOld.wt.answered === 2 && JSON.stringify(fromOld.rawDeck) === JSON.stringify(removed), "an older save drops the removed questions, keeps Weight, and stores the original save (" + JSON.stringify(fromOld) + ")");
     const wtOld = await card(page, "wt");
     ok(wtOld.status === "progress" && wtOld.answered === "2" && wtOld.badge === "In progress", "the restored Weight quiz stays in progress");
 
@@ -303,7 +315,7 @@ async function main() {
     await page.reload({ waitUntil: "load" });
     await page.waitForSelector("#dash");
     const orphan = await page.evaluate(removedIds => ({
-      gone: !POE.ITEMS.some(it => /uniform hazardous waste manifest|5,000 gallons of gasoline|only transports hazmat|Liquefied petroleum gas|written incident report|apply to hazmat carriers|shipping papers in the cargo compartment|hazardous MATERIALS regulated under 49 CFR 171-172|nearest rail|fire extinguisher rating is required|disc of what size|regrooved tire/.test(it.q)),
+      gone: !POE.ITEMS.some(it => /uniform hazardous waste manifest|5,000 gallons of gasoline|only transports hazmat|Liquefied petroleum gas|written incident report|apply to hazmat carriers|shipping papers in the cargo compartment|hazardous MATERIALS regulated under 49 CFR 171-172|nearest rail|fire extinguisher rating is required|disc of what size|regrooved tire|posted bridge limits or seasonal/.test(it.q)),
       hazDeck: POE.state().sections.haz.deck,
       hazHasRemoved: POE.state().sections.haz.deck.some(id => removedIds.includes(id)),
       hazPos: POE.state().sections.haz.pos,
@@ -316,7 +328,7 @@ async function main() {
       legacyKept: !!(POE.state().legacy && POE.state().legacy.raw && JSON.stringify(POE.state().legacy.raw.deck) === JSON.stringify(removedIds))
     }), removed);
     ok(orphan.gone && !orphan.hazHasRemoved && orphan.hazDeck.length === 5 && orphan.hazPos === 2 && orphan.hazAnswers === 3, "a saved HazMat deck drops the removed questions and keeps the rest (" + JSON.stringify(orphan) + ")");
-    ok(orphan.wtPos === 6 && orphan.wtAnswered === 4 && orphan.wtLen === 71, "Weight progress stays when the removed HazMat questions are dropped");
+    ok(orphan.wtPos === 6 && orphan.wtAnswered === 4 && orphan.wtLen === 78, "Weight progress stays when the removed questions are dropped");
     ok(orphan.mixedDeck.length === 1 && !orphan.mixedDeck.some(id => removed.includes(id)) && orphan.mixedPos === 0 && orphan.legacyKept, "mixed progress drops the missing questions and the backup save is kept");
     ok((await card(page, "haz")).status === "progress" && (await card(page, "haz")).answered === "3", "HazMat stays in progress after the missing question is ignored");
     ok((await card(page, "wt")).pos === "6" && (await card(page, "wt")).answered === "4" && (await card(page, "wt")).missed === "1", "Weight still shows its saved place and miss");
@@ -492,6 +504,121 @@ async function main() {
     ok(eboiView.q.includes("EBOI eastbound scale") && eboiView.q.includes("operating without the required permit") && eboiView.marked.includes("I.C. 49-1004; an EL/EW permit up to 129,000 lbs"), "resume opens the rewritten question with the saved permit answer marked");
     await page.evaluate(() => localStorage.clear());
 
+    const addedIds = ["wt:1tv2nsn", "wt:1jrg7pf", "wt:1c9d28q", "wt:779bej", "wt:lq1k8w", "wt:1q13yda", "wt:jkv47b", "wt:edenc4"];
+    await page.evaluate(addedIds => {
+      const { QID, ITEMS, SECTIONS, KEY } = POE;
+      const added = new Set(addedIds);
+      const old = ITEMS.filter(it => it.sec === "wt" && !added.has(QID(it)));
+      const answers = {};
+      old.forEach(it => { answers[QID(it)] = it.opts[it.ans]; });
+      const haz = ITEMS.filter(it => it.sec === "haz").slice(0, 3);
+      const hazAnswers = {};
+      hazAnswers[QID(haz[0])] = haz[0].opts[haz[0].ans];
+      const sections = {};
+      SECTIONS.forEach(s => { sections[s.id] = { shuffle: false, deck: [], pos: 0, answers: {}, finished: false }; });
+      sections.wt = { shuffle: false, deck: old.map(QID), pos: 4, answers, finished: true };
+      sections.haz = { shuffle: false, deck: haz.map(QID), pos: 1, answers: hazAnswers, finished: false };
+      localStorage.setItem(KEY, JSON.stringify({ v: 2, sections, mixed: { shuffle: true, filter: "all", deck: [], pos: 0, answers: {}, finished: false }, legacy: null }));
+    }, addedIds);
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const grown = await card(page, "wt");
+    const hazKept = await card(page, "haz");
+    ok(grown.status === "progress" && grown.badge === "In progress" && grown.len === "78" && grown.answered === "70" && grown.correct === "70" && grown.pos === "70" && !grown.cls.includes("pass"), "a finished 70-question Weight save gains the new questions and does not stay PASS");
+    ok(hazKept.status === "progress" && hazKept.len === "3" && hazKept.pos === "1" && hazKept.answered === "1", "a short HazMat save is not filled with the new Weight questions");
+    const boundary = await page.evaluate(() => {
+      const sess = POE.state().sections.wt;
+      const byId = new Map(POE.ITEMS.map(it => [POE.QID(it), it]));
+      sess.deck.forEach(id => {
+        if (sess.answers[id]) return;
+        const it = byId.get(id);
+        sess.answers[id] = it.opts.find((_, k) => k !== it.ans);
+      });
+      sess.finished = true;
+      const low = POE.gradeSection("wt");
+      const flip = byId.get("wt:1tv2nsn");
+      sess.answers[flip && POE.QID(flip)] = flip.opts[flip.ans];
+      const high = POE.gradeSection("wt");
+      return {
+        low: low.status + " " + low.correct + "/" + low.deck.length,
+        high: high.status + " " + high.correct + "/" + high.deck.length
+      };
+    });
+    ok(boundary.low === "needs 70/78" && boundary.high === "pass 71/78", "70/78 is below 90% and 71/78 passes (" + JSON.stringify(boundary) + ")");
+    await page.evaluate(addedIds => {
+      const { QID, ITEMS, SECTIONS, KEY } = POE;
+      const added = new Set(addedIds);
+      const old = ITEMS.filter(it => it.sec === "wt" && !added.has(QID(it))).slice(0, 4);
+      const answers = {};
+      answers[QID(old[0])] = old[0].opts[old[0].ans];
+      const sections = {};
+      SECTIONS.forEach(s => { sections[s.id] = { shuffle: false, deck: [], pos: 0, answers: {}, finished: false }; });
+      sections.wt = { shuffle: false, deck: old.map(QID), pos: 2, answers, finished: false };
+      localStorage.setItem(KEY, JSON.stringify({ v: 2, sections, mixed: { shuffle: true, filter: "all", deck: [], pos: 0, answers: {}, finished: false }, legacy: null }));
+    }, addedIds);
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const partialWt = await card(page, "wt");
+    ok(partialWt.status === "progress" && partialWt.len === "4" && partialWt.pos === "2" && partialWt.answered === "1" && partialWt.badge === "In progress", "a partial Weight save keeps its place and is not expanded or passed");
+    await page.evaluate(addedIds => {
+      const { QID, ITEMS, KEY, KEY_V1 } = POE;
+      const added = new Set(addedIds);
+      const old = ITEMS.filter(it => it.sec === "wt" && !added.has(QID(it)));
+      const answers = {};
+      old.forEach(it => { answers[QID(it)] = it.opts[it.ans]; });
+      localStorage.removeItem(KEY);
+      localStorage.setItem(KEY_V1, JSON.stringify({ filter: "wt", shuffle: false, deck: old.map(QID), pos: 9, answers, finished: true, t: 1 }));
+    }, addedIds);
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("[data-legacy-banner]");
+    const legacyGrown = await card(page, "wt");
+    const legacyBanner = await page.$eval("[data-legacy-banner]", el => el.textContent);
+    ok(legacyGrown.status === "progress" && legacyGrown.badge === "In progress" && legacyGrown.len === "78" && legacyGrown.answered === "70" && legacyGrown.pos === "70" && !legacyGrown.cls.includes("pass"), "an older finished Weight quiz is restored in progress, not PASS");
+    ok(legacyBanner.includes("New questions were added") && legacyBanner.includes("not passed") && legacyBanner.includes("question 71 of 78"), "the note says the added Weight questions are not a pass");
+    await page.click('[data-action="resume"][data-section="wt"]');
+    await page.waitForSelector("h3");
+    const resumedNew = await page.$eval("h3", el => el.textContent);
+    ok(resumedNew.includes("2,000 lbs or less") && resumedNew.includes("not deployed"), "resume opens the first added VLS question");
+    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => {
+      const { QID, ITEMS, KEY_V1 } = POE;
+      const few = ITEMS.filter(it => it.sec === "wt").slice(0, 4);
+      const answers = {};
+      few.forEach(it => { answers[QID(it)] = it.opts[it.ans]; });
+      localStorage.setItem(KEY_V1, JSON.stringify({ filter: "wt", shuffle: false, deck: few.map(QID), pos: 1, answers, finished: true, t: 2 }));
+    });
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#mixed");
+    const shortLegacy = await card(page, "wt");
+    const shortMixed = await card(page, "mixed");
+    ok(shortLegacy.status === "new" && shortMixed.len === "4" && shortMixed.badge === "Finished", "a short older Weight save stays on the mixed quiz and does not pass Weight");
+    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => {
+      const { SECTIONS, KEY } = POE;
+      const sections = {};
+      SECTIONS.forEach(s => { sections[s.id] = { shuffle: false, deck: [], pos: 0, answers: {}, finished: false }; });
+      sections.wt = { shuffle: false, deck: ["wt:p8dfzv"], pos: 0, answers: { "wt:p8dfzv": "I.C. 49-1001(11)(e)" }, finished: true };
+      localStorage.setItem(KEY, JSON.stringify({ v: 2, sections, mixed: { shuffle: true, filter: "all", deck: [], pos: 0, answers: {}, finished: false }, legacy: null }));
+    });
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector("#dash");
+    const codeMove = await page.evaluate(() => {
+      const sess = POE.state().sections.wt;
+      const it = POE.ITEMS.find(x => x.q.includes("Which current code applies"));
+      const id = POE.QID(it);
+      return {
+        id, inDeck: sess.deck.includes(id), oldInDeck: sess.deck.includes("wt:p8dfzv"),
+        saved: sess.answers[id], correct: it.opts[it.ans], cite: it.cite,
+        ansIndex: it.ans
+      };
+    });
+    ok(codeMove.id === "wt:1jrg7pf" && codeMove.inDeck && !codeMove.oldInDeck && codeMove.saved === "I.C. 49-1001(10)(e)" && codeMove.correct === "I.C. 49-1001(10)(e)" && codeMove.cite === "I.C. 49-1001(10)(e); ITD DMV/POE Policy Manual 105.16", "an older 49-1001(11)(e) choice is kept as the current 49-1001(10)(e) answer (" + JSON.stringify(codeMove) + ")");
+    await page.click('[data-action="resume"][data-section="wt"]');
+    await page.waitForSelector(".opt.ok");
+    const markedCode = await page.$eval(".opt.ok", el => el.textContent);
+    ok(markedCode.includes("I.C. 49-1001(10)(e)") && !markedCode.includes("49-1001(11)(e)"), "resume marks the current 49-1001(10)(e) choice correct");
+    await page.evaluate(() => localStorage.clear());
+
     await page.evaluate(() => {
       const { QID, ITEMS, SECTIONS, KEY } = POE;
       function sess(id, miss, leave) {
@@ -535,7 +662,7 @@ async function main() {
     const rov = await card(page, "rov");
     const wim = await card(page, "wim");
     const reg = await card(page, "reg");
-    ok(wt.status === "pass" && wt.badge === "PASS" && wt.missed === "2" && wt.answered === "71" && wt.correct === "69" && wt.score === "97.1%", "a finished Weight score of 69/71 stays PASS");
+    ok(wt.status === "pass" && wt.badge === "PASS" && wt.missed === "2" && wt.answered === "78" && wt.correct === "76" && wt.score === "97.4%", "a finished Weight score of 76/78 stays PASS");
     ok(size.status === "needs" && size.badge === "NEEDS WORK" && size.missed === "7" && size.answered === "67" && size.correct === "60" && size.score === "89.5%" && size.cls.includes("needs"), "60/67 is below 90% and is NEEDS WORK");
     ok(sec.status === "pass" && sec.missed === "1" && sec.badge === "PASS", "1 missed is PASS");
     ok(eqp.status === "pass" && eqp.missed === "0" && eqp.badge === "PASS", "0 missed is PASS");
@@ -696,8 +823,8 @@ async function main() {
       size: POE.state().sections.size.deck.length,
       placed: POE.state().legacy.placed
     }));
-    ok(legacy.status === "progress" && legacy.badge === "In progress" && legacy.pos === "10" && legacy.answered === "4" && legacy.correct === "4" && legacy.len === "71", "a saved full Weight quiz restores its place and lbs answers");
-    ok(banner.includes("Weight") && banner.includes("question 11 of 71") && banner.includes("4 answered"), "migration tells you where the old quiz was restored");
+    ok(legacy.status === "progress" && legacy.badge === "In progress" && legacy.pos === "10" && legacy.answered === "4" && legacy.correct === "4" && legacy.len === "78", "a saved full Weight quiz restores its place and lbs answers");
+    ok(banner.includes("Weight") && banner.includes("question 11 of 78") && banner.includes("4 answered"), "migration tells you where the old quiz was restored");
     ok(legacyStore.v1 === null && legacyStore.placed === "wt" && legacyStore.size === 0, "old key is retired only after the backup exists, and other sections stay empty");
     ok(JSON.stringify(legacyStore.arch.deck) === JSON.stringify(legacyStore.raw.deck) && legacyStore.arch.pos === 10 && Object.keys(legacyStore.arch.answers).length === 4, "original save is kept in the backup and in the new record");
     ok((await card(page, "size")).status === "new" && (await card(page, "size")).badge === "Not started", "restoring Weight does not mark Size");
@@ -711,7 +838,7 @@ async function main() {
       wt: POE.state().sections.wt.deck.length
     }));
     ok((await card(page, "wt")).status === "new" && afterRestart.wt === 0, "restart clears only the Weight quiz");
-    ok(JSON.stringify(afterRestart.arch.deck) === JSON.stringify(archBefore.deck) && afterRestart.rawDeck === 71, "restart does not erase the backed-up save");
+    ok(JSON.stringify(afterRestart.arch.deck) === JSON.stringify(archBefore.deck) && afterRestart.rawDeck === 78, "restart does not erase the backed-up save");
 
     await page.evaluate(() => localStorage.clear());
     await page.evaluate(() => {
@@ -813,7 +940,7 @@ async function main() {
     const hazRow = await page.$eval('[data-mixed-section="haz"]', el => ({ status: el.dataset.status, text: el.textContent }));
     const wtRow = await page.$eval('[data-mixed-section="wt"]', el => ({ status: el.dataset.status, text: el.textContent }));
     const sizeRow = await page.$eval('[data-mixed-section="size"]', el => el.dataset.status);
-    ok(fullMixed.len === "374" && fullMixed.pos === "100" && fullMixed.badge === "NEEDS WORK", "a finished 374-question save keeps its place and is not given one overall PASS");
+    ok(fullMixed.len === "381" && fullMixed.pos === "100" && fullMixed.badge === "NEEDS WORK", "a finished 381-question save keeps its place and is not given one overall PASS");
     ok(hazRow.status === "needs" && hazRow.text.includes("NEEDS WORK"), "HazMat at 36/41 in the old mixed quiz is below 90%");
     ok(wtRow.status === "pass" && wtRow.text.includes("PASS"), "Weight with 2 misses in the old mixed quiz passes that section");
     ok(sizeRow === "pass", "a perfect Size section inside the finished mixed quiz passes");
@@ -913,34 +1040,34 @@ async function main() {
     ok(page.__errors.length === 0, "no script errors during the quiz: " + page.__errors.join(" | "));
 
     const keysBeforeUpdate = await page.evaluate(async () => await caches.keys());
-    ok(keysBeforeUpdate.includes("poe-quiz-v26"), "normal load installs the v26 cache: " + keysBeforeUpdate.join(","));
+    ok(keysBeforeUpdate.includes("poe-quiz-v29"), "normal load installs the v29 cache: " + keysBeforeUpdate.join(","));
   } finally {
     await browser.close();
   }
 
   const browser2 = await launch();
   try {
-    server.setSw(STUB_V25);
+    server.setSw(STUB_V28);
     const page = await newPage(browser2);
     await page.goto(server.base, { waitUntil: "load" });
     await page.waitForSelector("#dash");
-    const firstKeys = await waitKeys(page, keys => keys.includes("poe-quiz-v25"), 15000);
-    ok(firstKeys.includes("poe-quiz-v25"), "first worker cache is the live v25: " + firstKeys.join(","));
+    const firstKeys = await waitKeys(page, keys => keys.includes("poe-quiz-v28"), 15000);
+    ok(firstKeys.includes("poe-quiz-v28"), "first worker cache is the live v28: " + firstKeys.join(","));
     server.setSw(null);
     await page.reload({ waitUntil: "load" });
-    const nextKeys = await waitKeys(page, keys => keys.length === 1 && keys[0] === "poe-quiz-v26", 15000);
-    ok(nextKeys.length === 1 && nextKeys[0] === "poe-quiz-v26", "updating the worker drops v25 and keeps v26: " + nextKeys.join(","));
+    const nextKeys = await waitKeys(page, keys => keys.length === 1 && keys[0] === "poe-quiz-v29", 15000);
+    ok(nextKeys.length === 1 && nextKeys[0] === "poe-quiz-v29", "updating the worker drops v28 and keeps v29: " + nextKeys.join(","));
     const cached = await page.evaluate(async () => {
       const keys = await caches.keys();
       const named = keys[0] ? await caches.open(keys[0]) : null;
       const hit = named ? await named.match("./index.html") : null;
       const text = hit ? await hit.text() : "";
-      const marker = named ? await named.match("marker-v25") : null;
-      return { hasApp: text.includes("Section quizzes") && text.includes("v26"), marker: !!marker, len: text.length };
+      const marker = named ? await named.match("marker-v28") : null;
+      return { hasApp: text.includes("Section quizzes") && text.includes("v29"), marker: !!marker, len: text.length };
     });
-    ok(cached.hasApp && cached.marker === false, "v26 cache holds the section quiz and the v25 marker is gone (" + JSON.stringify(cached) + ")");
+    ok(cached.hasApp && cached.marker === false, "v29 cache holds the section quiz and the v28 marker is gone (" + JSON.stringify(cached) + ")");
     const sub = await page.$eval("header .sub", el => el.textContent);
-    ok(sub.includes("v26"), "updated page shows v26");
+    ok(sub.includes("v29"), "updated page shows v29");
     await page.setOfflineMode(true);
     await page.reload({ waitUntil: "load" });
     await page.waitForSelector("#dash");
@@ -949,7 +1076,7 @@ async function main() {
       n: POE.ITEMS.length,
       sub: document.querySelector("header .sub").textContent
     }));
-    ok(offline.heading === "Section quizzes" && offline.n === 374 && offline.sub.includes("v26"), "offline reload serves the updated quiz and all 374 questions");
+    ok(offline.heading === "Section quizzes" && offline.n === 381 && offline.sub.includes("v29"), "offline reload serves the updated quiz and all 381 questions");
     await page.click('[data-action="start"][data-section="wt"]');
     await page.waitForSelector("h3");
     const offlineQ = await page.$eval("h3", el => el.textContent);
